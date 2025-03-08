@@ -10,6 +10,7 @@ export type RootStackParamList = {
   AdminRestaurantsScreen: undefined;
   AdminUsersScreen: undefined;
   UserDashboardScreen: undefined;
+  AdminMenuScreen: undefined;
 };
 
 export type NavigationProps = NativeStackNavigationProp<RootStackParamList>;

@@ -10,6 +10,7 @@ import AdminOrdersScreen from './src/screens/AdminOrdersScreen';
 import AdminRestaurantsScreen from './src/screens/AdminRestaurantsScreen';
 import AdminUsersScreen from './src/screens/AdminUsersScreen';
 import UserDashboardScreen from './src/screens/UserDashboardScreen';
+import AdminMenuScreen from './src/screens/AdminMenuScreen';
 
 const Stack = createStackNavigator();
 
@@ -44,6 +45,10 @@ function App(): React.JSX.Element {
         <Stack.Screen
           name="UserDashboardScreen"
           component={UserDashboardScreen}
+        />
+        <Stack.Screen
+          name="AdminMenuScreen"
+          component={AdminMenuScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -122,12 +122,12 @@ const AdminFoodTypesScreen = () => {
 
       <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
         <Text style={styles.imagePickerText}>
-          {imageUri ? 'Image Selected' : 'PICK AN IMAGE'}
+          {imageUri ? 'Image Selected' : 'Pick an image'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.addButton} onPress={addFoodType} disabled={uploading}>
-        {uploading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.addButtonText}>ADD FOOD TYPE</Text>}
+        {uploading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.addButtonText}>Add food type</Text>}
       </TouchableOpacity>
 
       {/* 🔹 Loading Indicator */}
@@ -173,6 +173,8 @@ const styles = StyleSheet.create({
   },
   imagePickerText: {
     color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   addButton: {
     backgroundColor: '#B00020',
@@ -183,6 +185,8 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   foodTypeCard: {
     backgroundColor: '#FFF',
