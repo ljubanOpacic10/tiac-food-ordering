@@ -15,10 +15,14 @@ interface Order {
   id: string;
   user_id: string;
   restaurant_id: string;
-  menu_item_ids: { menu_item_ids: string[] };
+  menu_item_ids: MenuItemIds; // JSON structure
   total_price: number;
   description: string;
   status: string;
+}
+
+interface MenuItemIds {
+  menu_item_ids: string[]; // Array of menu item IDs
 }
 
 
@@ -27,8 +31,7 @@ const AdminOrdersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [userNames, setUserNames] = useState<{ [key: string]: string }>({});
   const [restaurantNames, setRestaurantNames] = useState<{ [key: string]: string }>({});
-  const [menuItems, setMenuItems] = useState<{ [key: string]: string[] }>({});
-  const [menuItemIds, setMenuItemIds] = useState<String[]>([]);
+  const [menuItems, setMenuItems] = useState<{ [key: string]: { name: string; price: number }[] }>({});
 
   // 🔹 Fetch Orders from Supabase
   const fetchOrders = async () => {
@@ -45,11 +48,12 @@ const AdminOrdersScreen = () => {
       data.forEach(async (order) => {
         fetchUserById(order.user_id);
         fetchRestaurantById(order.restaurant_id);
-        fetchMenuItemsById(order.menu_items.items, order.id);
+        fetchMenuItemsById(order.menu_item_ids, order.id);
       });
     }
     setLoading(false);
   };
+
 
   useEffect(() => {
     fetchOrders();
@@ -90,47 +94,71 @@ const AdminOrdersScreen = () => {
     }
   };
 
-  // 🔹 Fetch Menu Item Names by ID
-  const parseJsonToArray = (menuItemIdsJson: string) => {
-    try {
-      const parsedIds = JSON.parse(menuItemIdsJson);
-      if (Array.isArray(parsedIds)) {
-        setMenuItemIds(parsedIds);
-      }
-    } catch (error) {
-      console.error('Error parsing menu item IDs:', error);
-    }
+  const deleteOrder = async (orderId: string) => {
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this order?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Delete',
+        onPress: async () => {
+          const { error } = await supabase.from('orders').delete().eq('id', orderId);
+
+          if (error) {
+            Alert.alert('Error', 'Failed to delete order.');
+            console.error('Delete Order Error:', error);
+          } else {
+            Alert.alert('Success', 'Order deleted successfully!');
+            setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId)); // ✅ Remove from UI
+          }
+        },
+      },
+    ]);
   };
 
-  // 🔹 Fetch Menu Items Individually
-  const fetchMenuItemsById = async (menuItemIdsJson: string, orderId: string) => {
+
+  const fetchMenuItemsById = async (menuItemIdsJson: any, orderId: string) => {
     if (menuItems[orderId]) {return;} // Skip if already fetched
 
-   parseJsonToArray(menuItemIdsJson); // ✅ Get array of IDs
+    try {
+      // ✅ Ensure proper parsing of JSON
+      const parsed = typeof menuItemIdsJson === 'string' ? JSON.parse(menuItemIdsJson) : menuItemIdsJson;
 
-    if (menuItemIds.length === 0) {
-      console.warn('No valid menu item IDs found:', menuItemIdsJson);
-      return;
-    }
+      if (!parsed || !parsed.menu_item_ids || !Array.isArray(parsed.menu_item_ids)) {
+        console.warn('Invalid JSON structure:', menuItemIdsJson);
+        return;
+      }
 
-    // 🔹 Fetch each menu item one by one
-    for (const menuItemId of menuItemIds) {
+      const menuItemIds = parsed.menu_item_ids; // Extract menu item IDs
+
+      if (menuItemIds.length === 0) {
+        console.warn('No valid menu item IDs found:', menuItemIdsJson);
+        return;
+      }
+
+      // ✅ Fetch multiple menu items with name and price in one query
       const { data, error } = await supabase
         .from('menu_items')
-        .select('name')
-        .eq('id', menuItemId)
-        .single();
+        .select('name, price') // ✅ Fetch both name and price
+        .in('id', menuItemIds);
 
       if (error) {
-        console.error(`Failed to fetch menu item ${menuItemId}:`, error);
+        console.error('Failed to fetch menu items:', error);
       } else if (data) {
-        setMenuItems((prev) => ({
-          ...prev,
-          [orderId]: data.name,
+        // Store an array of objects { name, price } instead of just names
+        const formattedItems = data.map((item) => ({
+          name: item.name,
+          price: item.price,
         }));
+
+        setMenuItems((prev) => ({ ...prev, [orderId]: formattedItems }));
       }
+    } catch (error) {
+      console.error('Error processing menu item IDs:', error);
     }
   };
+
 
   // 🔹 Update Order Status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -156,48 +184,64 @@ const AdminOrdersScreen = () => {
         <ActivityIndicator size="large" color="#B00020" />
       ) : (
         <FlatList
-          data={orders}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.orderCard}>
-              <Text style={styles.orderId}>Order ID: {item.id}</Text>
-              <Text style={styles.text}>User: {userNames[item.user_id] || 'Loading...'}</Text>
-              <Text style={styles.text}>Restaurant: {restaurantNames[item.restaurant_id] || 'Loading...'}</Text>
-              <Text style={styles.text}>Total: {item.total_price} RSD</Text>
-              <Text style={styles.text}>Status: {item.status}</Text>
+        data={orders}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.orderCard}>
+            {/* 🔹 Delete Button in Upper Right Corner */}
+            <TouchableOpacity onPress={() => deleteOrder(item.id)} style={styles.deleteButton}>
+              <Text style={styles.deleteButtonText}>X</Text>
+            </TouchableOpacity>
 
-              {/* 🔹 Menu Items List */}
-              <Text style={styles.menuTitle}>Ordered Items: {'Loading...'}</Text>
+            <Text style={styles.orderId}>Order ID: {item.id}</Text>
+            <Text style={styles.text}>User: {userNames[item.user_id] || 'Loading...'}</Text>
+            <Text style={styles.text}>Restaurant: {restaurantNames[item.restaurant_id] || 'Loading...'}</Text>
+            <Text style={styles.text}>Total: {item.total_price} RSD</Text>
+            <Text style={styles.text}>Status: {item.status}</Text>
+            <Text style={styles.text}>Description: {item.description}</Text>
 
-              {/* 🔹 Status Update Buttons */}
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.statusButton, item.status === 'pending' && styles.selectedStatus]}
-                  onPress={() => updateOrderStatus(item.id, 'pending')}>
-                  <Text style={styles.buttonText}>Pending</Text>
-                </TouchableOpacity>
+            <Text style={styles.menuTitle}>Ordered Items:</Text>
+            {menuItems[item.id] ? (
+              menuItems[item.id].map((menuItem, index) => (
+                <Text key={index} style={styles.menuItemText}>
+                  • {menuItem.name} - {menuItem.price} RSD
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.menuItemText}>Loading...</Text>
+            )}
 
-                <TouchableOpacity
-                  style={[styles.statusButton, item.status === 'in_progress' && styles.selectedStatus]}
-                  onPress={() => updateOrderStatus(item.id, 'in_progress')}>
-                  <Text style={styles.buttonText}>In Progress</Text>
-                </TouchableOpacity>
+          {/* 🔹 Status Update Buttons */}
+          <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.statusButton, item.status === 'pending' && styles.selectedStatus]}
+            onPress={() => updateOrderStatus(item.id, 'pending')}>
+            <Text style={styles.buttonText}>Pending</Text>
+          </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.statusButton, item.status === 'completed' && styles.selectedStatus]}
-                  onPress={() => updateOrderStatus(item.id, 'completed')}>
-                  <Text style={styles.buttonText}>Completed</Text>
-                </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.statusButton, item.status === 'in_progress' && styles.selectedStatus]}
+            onPress={() => updateOrderStatus(item.id, 'in_progress')}>
+            <Text style={styles.buttonText}>In Progress</Text>
+          </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.statusButton, item.status === 'canceled' && styles.selectedStatus]}
-                  onPress={() => updateOrderStatus(item.id, 'canceled')}>
-                  <Text style={styles.buttonText}>Canceled</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
+          <TouchableOpacity
+            style={[styles.statusButton, item.status === 'completed' && styles.selectedStatus]}
+            onPress={() => updateOrderStatus(item.id, 'completed')}>
+            <Text style={styles.buttonText}>Completed</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.statusButton, item.status === 'canceled' && styles.selectedStatus]}
+            onPress={() => updateOrderStatus(item.id, 'canceled')}>
+            <Text style={styles.buttonText}>Canceled</Text>
+          </TouchableOpacity>
+          </View>
+          </View>
+
+        )}
+      />
+
       )}
     </View>
   );
@@ -269,4 +313,23 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
   },
+  deleteButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#B00020',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  deleteButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
+
+
