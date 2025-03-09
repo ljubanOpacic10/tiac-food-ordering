@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { supabase } from '../../supabaseConfig';
 import { ImageLibraryOptions, launchImageLibrary } from 'react-native-image-picker';
@@ -101,7 +102,7 @@ const AdminMenuScreen = () => {
 
   // 🔹 Add New Menu Item to Supabase
   const addMenuItem = async () => {
-    if (!menuItemName || !menuItemDescription || !menuItemPrice || !selectedMenuItemType) {
+    if (!menuItemName.trim() || !menuItemDescription.trim() || !menuItemPrice.trim() || !selectedMenuItemType) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
@@ -111,49 +112,61 @@ const AdminMenuScreen = () => {
 
     // ✅ Upload Image if Selected
     if (imageUri) {
-      const fileName = `${Date.now()}-${menuItemName.replace(/\s/g, '-')}.jpg`;
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
+      try {
+        const fileName = `${Date.now()}-${menuItemName.replace(/\s/g, '-')}.jpg`;
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
 
-      const { error } = await supabase.storage.from('menu_item_images').upload(fileName, blob);
+        const { error } = await supabase.storage
+          .from('menu_item_images')
+          .upload(fileName, blob);
 
-      if (error) {
-        Alert.alert('Error', 'Image upload failed.');
+        if (error) {throw error;}
+
+        // ✅ Get Public Image URL
+        const { data: publicUrlData } = supabase.storage
+          .from('menu_item_images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrlData.publicUrl;
+      } catch (error) {
+        console.error('Image Upload Error:', error);
+        Alert.alert('Error', 'Failed to upload image.');
         setAdding(false);
         return;
       }
-
-      // ✅ Get Public Image URL
-      const { data } = supabase.storage.from('menu_item_images').getPublicUrl(fileName);
-      imageUrl = data.publicUrl;
     }
 
-    // ✅ Insert Data into Supabase Table
-    const { error } = await supabase.from('menu_items').insert([
-      {
-        name: menuItemName,
-        description: menuItemDescription,
-        price: parseFloat(menuItemPrice),
-        image_url: imageUrl,
-        restaurant_id: restaurantId,
-        menu_item_type_id: selectedMenuItemType,
-      },
-    ]);
+    try {
+      // ✅ Insert Data into Supabase Table
+      const { error } = await supabase.from('menu_items').insert([
+        {
+          name: menuItemName.trim(),
+          description: menuItemDescription.trim(),
+          price: parseFloat(menuItemPrice),
+          image_url: imageUrl,
+          restaurant_id: restaurantId,
+          menu_item_type_id: selectedMenuItemType,
+        },
+      ]);
 
-    setAdding(false);
+      if (error) {throw error;}
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      Alert.alert('Success', 'Menu item added!');
+      Alert.alert('Success', 'Menu item added successfully!');
       setMenuItemName('');
       setMenuItemDescription('');
       setMenuItemPrice('');
       setSelectedMenuItemType(null);
       setImageUri(null);
-      fetchMenuItems(); // Refresh list
+      fetchMenuItems(); // Refresh the menu list
+    } catch (error) {
+      console.error('Supabase Insert Error:', error);
+      Alert.alert('Error', 'Failed to add menu item.');
+    } finally {
+      setAdding(false);
     }
   };
+
 
   return (
     <View style={styles.container}>
@@ -187,9 +200,19 @@ const AdminMenuScreen = () => {
       {/* 🔹 Image Picker */}
       <View style={styles.sectionContainer}>
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-          <Text style={styles.imagePickerText}>{imageUri ? 'Image Selected' : 'Pick an Image'}</Text>
+          <Text style={styles.imagePickerText}>{imageUri ? 'Change image' : 'Pick an Image'}</Text>
         </TouchableOpacity>
       </View>
+
+      {imageUri && (
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+        {/* 🔹 Remove Image Button (X) */}
+        <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
+          <Text style={styles.removeImageText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+      )}
 
       {/* 🔹 Add Menu Item Button */}
       <TouchableOpacity style={styles.addButton} onPress={addMenuItem} disabled={adding}>
@@ -338,6 +361,32 @@ const styles = StyleSheet.create({
       fontSize: 14,
       fontWeight: 'bold',
       color: '#B00020',
+    },
+    imageContainer: {
+      position: 'relative', // ✅ Allows positioning of "X" button
+      alignSelf: 'center',
+      marginBottom: 15,
+    },
+    imagePreview: {
+      width: 100,
+      height: 100,
+      borderRadius: 10,
+    },
+    removeImageButton: {
+      position: 'absolute',
+      top: -8,
+      right: -8,
+      backgroundColor: '#B00020',
+      width: 22,
+      height: 22,
+      borderRadius: 11, // ✅ Perfect circle
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    removeImageText: {
+      color: '#FFF',
+      fontSize: 14,
+      fontWeight: 'bold',
     },
   });
 

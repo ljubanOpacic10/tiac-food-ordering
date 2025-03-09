@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Image,
 } from 'react-native';
 import {ImageLibraryOptions, launchImageLibrary} from 'react-native-image-picker';
 import { supabase } from '../../supabaseConfig';
@@ -39,6 +40,38 @@ const AdminFoodTypesScreen = () => {
     }
     setLoading(false);
   };
+
+  const deleteFoodType = async (foodTypeId: string) => {
+    Alert.alert(
+      'Delete Food Type',
+      'Are you sure you want to delete this food type?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // ✅ Delete from Supabase
+            const { error } = await supabase
+              .from('food_types')
+              .delete()
+              .eq('id', foodTypeId);
+
+            if (error) {
+              Alert.alert('Error', 'Failed to delete food type.');
+              console.error(error);
+              return;
+            }
+
+            // ✅ Refresh List after Deletion
+            setFoodTypes((prevFoodTypes) => prevFoodTypes.filter((food) => food.id !== foodTypeId));
+            Alert.alert('Success', 'Food type deleted!');
+          },
+        },
+      ]
+    );
+  };
+
 
   useEffect(() => {
     fetchFoodTypes();
@@ -122,9 +155,21 @@ const AdminFoodTypesScreen = () => {
 
       <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
         <Text style={styles.imagePickerText}>
-          {imageUri ? 'Image Selected' : 'Pick an image'}
+          {imageUri ? 'Change image' : 'Pick an image'}
         </Text>
       </TouchableOpacity>
+
+      {imageUri && (
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+
+        {/* 🔹 Remove Image Button (X) */}
+        <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
+          <Text style={styles.removeImageText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+      )}
+
 
       <TouchableOpacity style={styles.addButton} onPress={addFoodType} disabled={uploading}>
         {uploading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.addButtonText}>Add food type</Text>}
@@ -140,10 +185,15 @@ const AdminFoodTypesScreen = () => {
           renderItem={({ item }) => (
             <View style={styles.foodTypeCard}>
               <Text style={styles.foodTypeText}>{item.food_type}</Text>
+              {/* 🔹 Trash Icon for Deleting */}
+              <TouchableOpacity onPress={() => deleteFoodType(item.id)}>
+                <Image source={require('../assets/trashcan.png')} style={styles.trashIcon} />
+              </TouchableOpacity>
             </View>
           )}
         />
       )}
+
     </View>
   );
 };
@@ -189,17 +239,54 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   foodTypeCard: {
+    flexDirection: 'row', // ✅ Align text and icon in the same row
+    justifyContent: 'space-between', // ✅ Pushes text and icon apart
+    alignItems: 'center',
     backgroundColor: '#FFF',
     padding: 15,
-    marginVertical: 5,
-    borderRadius: 8,
+    marginVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DDD',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
   foodTypeText: {
+    fontSize: 16,
     color: '#333',
-    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  trashIcon: {
+    width: 24,
+    height: 24,
+    tintColor: '#B00020', // ✅ Same red theme color
+  },
+  imageContainer: {
+    position: 'relative', // ✅ Allows positioning of "X" button
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#B00020',
+    width: 22,
+    height: 22,
+    borderRadius: 11, // ✅ Perfect circle
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeImageText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

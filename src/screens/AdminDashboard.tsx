@@ -25,8 +25,12 @@ const AdminDashboard = () => {
   const [sendNotificationModalVisible, setSendNotificationsModalVisible] = useState(false);
 
   const adminOptions = [
-    {title: 'Users', image: require('../assets/users-icon.png')},
-    {title: 'Restaurants', image: require('../assets/restaurants-icon.png')},
+    {
+      title: 'Users',
+      image: require('../assets/users-icon.png')},
+    {
+      title: 'Restaurants',
+      image: require('../assets/restaurants-icon.png')},
     {
       title: 'Start/End voting session',
       image: require('../assets/voting-icon.png'),
@@ -39,7 +43,7 @@ const AdminDashboard = () => {
       title: 'Send notification',
       image: require('../assets/notification-icon.png'),
     },
-    {title: "Today's orders", image: require('../assets/orders-icon.png')},
+    {title: 'Orders', image: require('../assets/orders-icon.png')},
     {title: 'Food types', image: require('../assets/food-types-icon.png')},
   ];
 
@@ -51,7 +55,7 @@ const AdminDashboard = () => {
       case 'Restaurants':
         navigation.navigate('AdminRestaurantsScreen');
         break;
-      case "Today's orders":
+      case 'Orders':
         navigation.navigate('AdminOrdersScreen');
         break;
       case 'Food types':
@@ -95,7 +99,7 @@ const AdminDashboard = () => {
       </View>
 
       {/* Grid Layout for Buttons */}
-      <FlatList
+        <FlatList
         data={adminOptions}
         numColumns={2}
         keyExtractor={(item, index) => index.toString()}

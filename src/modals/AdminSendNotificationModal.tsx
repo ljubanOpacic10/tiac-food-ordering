@@ -23,9 +23,6 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Admin User ID (Hardcoded for now)
-  const adminId = '63954417-bae1-4a55-b095-a63f2591c98e';
-
   // 🔹 Function to send notification
   const sendNotification = async () => {
     if (!message.trim()) {
@@ -35,12 +32,22 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
 
     setLoading(true);
 
+    const { data: user, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user || !user.user) {
+      Alert.alert('Error', 'Failed to fetch admin user ID.');
+      setLoading(false);
+      return;
+    }
+
+    const adminId = user.user.id; // Get the authenticated user ID
+
     // 🔹 Insert new notification into Supabase
     const { error } = await supabase.from('notifications').insert([
       {
         created_at: new Date().toISOString(),
         message,
-        type: 'notification', // Could be 'message' or 'notification'
+        type: 'notification',
         sender_user_id: adminId,
       },
     ]);

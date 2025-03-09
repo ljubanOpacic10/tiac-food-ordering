@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   TextInput,
-  Button,
   Alert,
   TouchableOpacity,
 } from 'react-native';
@@ -149,7 +148,7 @@ const AdminUsersScreen = () => {
       <TextInput style={styles.input} placeholder="Debt" value={debt} onChangeText={setDebt} keyboardType="numeric" />
 
       {/* 🔹 Add User Button */}
-      <Button title="Add User" onPress={addUser} color="#B00020" />
+      <TouchableOpacity onPress={addUser} style = {styles.addUserButton}><Text style = {styles.addButtonText}>Add User</Text></TouchableOpacity>
 
       {/* 🔍 Search Bar Below Add User Button */}
       <TextInput
@@ -241,5 +240,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#B00020',
     marginTop: 4,
+  },
+  addUserButton: {
+    backgroundColor: '#B00020',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 5, // Reduced margin to move it closer
+    marginBottom: 15, // Adjusted margin
+  },
+  addButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

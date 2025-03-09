@@ -8,8 +8,11 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { supabase } from '../../supabaseConfig';
+import AdminAddFoodTypeModal from '../modals/AdminAddFoodTypeModal';
+import { ImageLibraryOptions, launchImageLibrary } from 'react-native-image-picker';
 
 // ✅ Define Interfaces
 interface Restaurant {
@@ -33,6 +36,8 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
   const [restaurantAddress, setRestaurantAddress] = useState('');
   const [selectedFoodType, setSelectedFoodType] = useState('');
   const [adding, setAdding] = useState(false);
+  const [addFoodTypeModalVisible, setAddFoodTypeModalVisible] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   // 🔹 Fetch Restaurants from Supabase
   const fetchRestaurants = async () => {
@@ -67,34 +72,134 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
     fetchFoodTypes();
   }, []);
 
+  const addFoodType = async () => {
+    setAddFoodTypeModalVisible(true);
+  };
+
+  const deleteRestaurant = async (restaurantId: string) => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete this restaurant?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              // 🔹 Delete restaurant from Supabase
+              const { error } = await supabase
+                .from('restaurants')
+                .delete()
+                .eq('id', restaurantId);
+
+              if (error) {
+                throw error;
+              }
+
+              // 🔹 Remove from Local State
+              setRestaurants((prev) =>
+                prev.filter((restaurant) => restaurant.id !== restaurantId)
+              );
+
+              Alert.alert('Success', 'Restaurant deleted successfully!');
+            } catch (error) {
+              console.error('Delete Error:', error);
+              Alert.alert('Error', 'Failed to delete restaurant.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+
+  const pickImage = () => {
+    const options: ImageLibraryOptions = {
+      mediaType: 'photo' as const,
+      quality: 1,
+    };
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorMessage) {
+        console.error('Image Picker Error:', response.errorMessage);
+      } else if (response.assets && response.assets.length > 0) {
+        const selectedUri = response.assets[0].uri ?? null;
+        setImageUri(selectedUri);
+      }
+    });
+  };
+
   // 🔹 Add New Restaurant
   const addRestaurant = async () => {
-    if (!restaurantName || !restaurantAddress || !selectedFoodType) {
-      Alert.alert('Error', 'Please fill in all fields.');
+    if (!restaurantName.trim()) {
+      Alert.alert('Error', 'Please fill in the restaurant name field.');
       return;
     }
 
     setAdding(true);
-    const { error } = await supabase.from('restaurants').insert([
-      {
-        name: restaurantName,
-        address: restaurantAddress,
-        food_type_id: selectedFoodType,
-      },
-    ]);
+    let imageUrl = null;
 
-    setAdding(false);
+    // ✅ Upload Image if Selected
+    if (imageUri) {
+      try {
+        const fileName = `${Date.now()}-${restaurantName.replace(/\s/g, '-')}.jpg`;
+        const response = await fetch(imageUri);
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      Alert.alert('Success', 'Restaurant added!');
+        if (!response.ok) {
+          throw new Error('Failed to fetch image from URI.');
+        }
+
+        const blob = await response.blob();
+
+        const uploadResult = await supabase.storage
+          .from('restaurants_images')
+          .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+        if (uploadResult.error) {
+          throw new Error(uploadResult.error.message);
+        }
+
+        // ✅ Get Public Image URL Safely
+        const { data: publicUrlData } = supabase.storage
+          .from('restaurants_images')
+          .getPublicUrl(fileName);
+        imageUrl = publicUrlData.publicUrl || null;
+      } catch (uploadError) {
+        Alert.alert('Error', 'Failed to upload image.');
+        console.error('Image Upload Error:', uploadError);
+        setAdding(false);
+        return;
+      }
+    }
+
+    try {
+      // ✅ Insert New Restaurant into Supabase
+      const { error } = await supabase.from('restaurants').insert([
+        {
+          name: restaurantName,
+          address: restaurantAddress || null, // Allow optional address
+          image_url: imageUrl,
+          food_type_id: selectedFoodType || null, // Allow optional selection
+        },
+      ]);
+
+      if (error) {throw error;}
+
+      Alert.alert('Success', 'Restaurant added successfully!');
       setRestaurantName('');
       setRestaurantAddress('');
       setSelectedFoodType('');
+      setImageUri(null);
       fetchRestaurants(); // Refresh the list
+    } catch (dbError) {
+      Alert.alert('Error');
+      console.error('Database Insert Error:', dbError);
+    } finally {
+      setAdding(false);
     }
   };
+
 
   return (
     <View style={styles.container}>
@@ -114,32 +219,53 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
         onChangeText={setRestaurantAddress}
       />
 
-      {/* 🔹 Food Type Selection */}
       <Text style={styles.label}>Select Food Type:</Text>
       <View style={styles.foodTypeList}>
         <FlatList
-          data={foodTypes}
+          data={[...foodTypes, { id: 'add_button', food_type: 'add' }]} // Add a fake item for "+"
           horizontal
           keyExtractor={(item) => item.id}
           showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.foodTypeButton,
-                selectedFoodType === item.id && styles.selectedFoodType,
-              ]}
-              onPress={() => setSelectedFoodType(item.id)}>
-              <Text
+          renderItem={({ item }) =>
+            item.id !== 'add_button' ? (
+              // ✅ Existing Food Type Button
+              <TouchableOpacity
                 style={[
-                  styles.foodTypeText,
-                  selectedFoodType === item.id && styles.selectedFoodTypeText,
-                ]}>
-                {item.food_type}
-              </Text>
-            </TouchableOpacity>
-          )}
+                  styles.foodTypeButton,
+                  selectedFoodType === item.id && styles.selectedFoodType,
+                ]}
+                onPress={() => setSelectedFoodType(item.id)}>
+                <Text
+                  style={[
+                    styles.foodTypeText,
+                    selectedFoodType === item.id && styles.selectedFoodTypeText,
+                  ]}>
+                  {item.food_type}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              // ✅ "+" Button for Adding a New Food Type
+              <TouchableOpacity style={styles.addFoodTypeButton} onPress={addFoodType}>
+                <Text style={styles.plusText}>+</Text>
+              </TouchableOpacity>
+            )
+          }
         />
       </View>
+
+      <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+        <Text style={styles.imagePickerText}>{imageUri ? 'Change Image' : 'Pick Restaurant Image'}</Text>
+      </TouchableOpacity>
+
+      {imageUri && (
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+        {/* 🔹 Remove Image Button (X) */}
+        <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
+          <Text style={styles.removeImageText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+      )}
 
       {/* 🔹 Add Restaurant Button (Reduced Extra Space) */}
       <TouchableOpacity
@@ -155,29 +281,47 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
 
       {/* 🔹 Loading Indicator */}
       {loading ? (
-        <ActivityIndicator size="large" color="#B00020" />
+      <ActivityIndicator size="large" color="#B00020" />
       ) : (
         <FlatList
           data={restaurants}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.restaurantCard}>
-              <Text style={styles.restaurantName}>{item.name}</Text>
-              <Text style={styles.restaurantAddress}>{item.address}</Text>
+              <View style={styles.restaurantInfoContainer}>
+                <View>
+                  <Text style={styles.restaurantName}>{item.name}</Text>
+                  <Text style={styles.restaurantAddress}>{item.address}</Text>
+                </View>
+
+                {/* 🔹 Trashcan Icon for Deletion */}
+                <TouchableOpacity onPress={() => deleteRestaurant(item.id)}>
+                  <Image source={require('../assets/trashcan.png')} style={styles.trashIcon} />
+                </TouchableOpacity>
+              </View>
 
               {/* 🔹 Manage Menu Button */}
               <TouchableOpacity
                 style={styles.menuButton}
-                onPress={() => navigation.navigate('AdminMenuScreen', {
-                  restaurantId: item.id,
-                  restaurantName: item.name, // Pass restaurant name
-                })}>
+                onPress={() =>
+                  navigation.navigate('AdminMenuScreen', {
+                    restaurantId: item.id,
+                    restaurantName: item.name, // Pass restaurant name
+                  })
+                }>
                 <Text style={styles.menuButtonText}>Manage Menu</Text>
               </TouchableOpacity>
             </View>
           )}
         />
       )}
+
+
+      <AdminAddFoodTypeModal
+        visible={addFoodTypeModalVisible}
+        onClose={() => setAddFoodTypeModalVisible(false)}
+        fetchFoodTypes={fetchFoodTypes}
+      />
     </View>
   );
 };
@@ -203,6 +347,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DDD',
     marginBottom: 10,
+  },
+  imagePicker: {
+    backgroundColor: '#B00020',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15,
+    width: '100%',
+  },
+  imagePickerText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   label: {
     fontSize: 16,
@@ -253,6 +410,11 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  restaurantInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   restaurantName: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -260,6 +422,11 @@ const styles = StyleSheet.create({
   restaurantAddress: {
     fontSize: 14,
     color: '#666',
+  },
+  trashIcon: {
+    width: 24,
+    height: 24,
+    tintColor: '#B00020',
   },
   menuButton: {
     marginTop: 10,
@@ -271,6 +438,47 @@ const styles = StyleSheet.create({
   menuButtonText: {
     color: '#FFF',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  addFoodTypeButton: {
+    width: 25,
+    height: 25,
+    marginTop: 7,
+    borderRadius: 20, // Makes it circular
+    backgroundColor: '#B00020',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10, // Space from last item
+  },
+  plusText: {
+    fontSize: 15,
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  imageContainer: {
+    position: 'relative', // ✅ Allows positioning of "X" button
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#B00020',
+    width: 22,
+    height: 22,
+    borderRadius: 11, // ✅ Perfect circle
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeImageText: {
+    color: '#FFF',
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });

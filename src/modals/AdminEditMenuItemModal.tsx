@@ -63,45 +63,66 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
     };
   // 🔹 Update Menu Item in Supabase
   const updateMenuItem = async () => {
-
     setLoading(true);
     let imageUrl = imageUri;
 
     // ✅ Upload Image if Changed
     if (imageUri && imageUri !== menuItem.image_url) {
-      const fileName = `${Date.now()}-${name.replace(/\s/g, '-')}.jpg`;
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
+      try {
+        const fileName = `${Date.now()}-${name.replace(/\s/g, '-')}.jpg`;
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
 
-      const { error } = await supabase.storage.from('menu_images').upload(fileName, blob);
+        const { error: uploadError } = await supabase.storage
+          .from('menu_images')
+          .upload(fileName, blob);
 
-      if (error) {
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
+
+        // ✅ Get Public Image URL
+        const { data: publicUrlData } = supabase.storage
+          .from('menu_images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrlData.publicUrl;
+      } catch (error) {
         setLoading(false);
-        Alert.alert('Error', error.message);
-        return;
+        Alert.alert('Error', 'Failed to upload image.');
+        console.error(error);
+        return; // Stop execution if image upload fails
+      }
+    }
+
+    try {
+      // ✅ Update Supabase Record
+      const { error: updateError } = await supabase
+        .from('menu_items')
+        .update({
+          name,
+          description,
+          price: parseFloat(price), // Ensure price is stored as a number
+          menu_item_type_id: menuItemType,
+          image_url: imageUrl,
+        })
+        .eq('id', menuItem.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
       }
 
-      // Get the new public URL
-      const { data: publicUrlData } = supabase.storage.from('menu_images').getPublicUrl(fileName);
-      imageUrl = publicUrlData.publicUrl;
-    }
-
-    // ✅ Update Supabase Record
-    const { error } = await supabase
-      .from('menu_items')
-      .update({ name, description, price: parseFloat(price), menu_item_type_id: menuItemType, image_url: imageUrl })
-      .eq('id', menuItem.id);
-
-    setLoading(false);
-
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
       Alert.alert('Success', 'Menu item updated successfully!');
-      refreshMenu();
-      onClose();
+      refreshMenu(); // Refresh menu items list
+      onClose(); // Close modal
+    } catch (error) {
+      Alert.alert('Error');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
+
 
   // 🔹 Delete Menu Item
   const deleteMenuItem = async () => {
@@ -155,8 +176,15 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
             <Text style={styles.imagePicker}>{imageUri ? 'Change Image' : 'Pick an Image'}</Text>
           </TouchableOpacity>
 
-          {/* Display Image if Selected */}
-          {imageUri && <Image source={{ uri: imageUri }} style={styles.imagePreview} />}
+          {imageUri && (
+                        <View style={styles.imageContainer}>
+                          <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                          {/* 🔹 Remove Image Button (X) */}
+                          <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
+                            <Text style={styles.removeImageText}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                        )}
 
           {/* 🔹 Action Buttons */}
           <View style={styles.buttonContainer}>
@@ -203,7 +231,32 @@ const styles = StyleSheet.create({
   selectedType: { backgroundColor: '#B00020' },
   selectedTypeText: { color: '#FFF' },
   imagePicker: { backgroundColor: '#B00020', padding: 10, borderRadius: 8, marginBottom: 10 },
-  imagePreview: { width: 100, height: 100, marginBottom: 10, borderRadius: 8 },
+  imageContainer: {
+    position: 'relative', // ✅ Allows positioning of "X" button
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#B00020',
+    width: 22,
+    height: 22,
+    borderRadius: 11, // ✅ Perfect circle
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeImageText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   updateButton: { backgroundColor: '#007BFF', padding: 10, borderRadius: 8, flex: 1, marginRight: 5 },
   deleteButton: { backgroundColor: '#B00020', padding: 10, borderRadius: 8, flex: 1, marginLeft: 5 },
