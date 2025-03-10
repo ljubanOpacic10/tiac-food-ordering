@@ -228,7 +228,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) =>
             item.id !== 'add_button' ? (
-              // ✅ Existing Food Type Button
               <TouchableOpacity
                 style={[
                   styles.foodTypeButton,

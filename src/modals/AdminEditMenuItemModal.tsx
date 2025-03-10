@@ -173,7 +173,7 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
 
           {/* 🔹 Image Picker */}
           <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-            <Text style={styles.imagePicker}>{imageUri ? 'Change Image' : 'Pick an Image'}</Text>
+            <Text style={styles.imagePickerText}>{imageUri ? 'Change Image' : 'Pick an Image'}</Text>
           </TouchableOpacity>
 
           {imageUri && (
@@ -224,13 +224,48 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
-  input: { width: '100%', padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 8, marginBottom: 10 },
-  label: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 5 },
-  typeButton: { padding: 10, borderRadius: 8, marginBottom: 5, backgroundColor: '#DDD' },
-  selectedType: { backgroundColor: '#B00020' },
-  selectedTypeText: { color: '#FFF' },
-  imagePicker: { backgroundColor: '#B00020', padding: 10, borderRadius: 8, marginBottom: 10 },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  input: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  typeButton: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 5,
+    backgroundColor: '#DDD',
+  },
+  selectedType: {
+    backgroundColor: '#B00020',
+  },
+  selectedTypeText: {
+    color: '#FFF',
+  },
+  imagePicker: {
+    backgroundColor: '#B00020',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  imagePickerText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   imageContainer: {
     position: 'relative', // ✅ Allows positioning of "X" button
     alignSelf: 'center',

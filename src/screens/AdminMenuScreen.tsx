@@ -14,6 +14,7 @@ import { supabase } from '../../supabaseConfig';
 import { ImageLibraryOptions, launchImageLibrary } from 'react-native-image-picker';
 import { useRoute } from '@react-navigation/native';
 import AdminEditMenuItemModal from '../modals/AdminEditMenuItemModal';
+import AdminAddMenuItemTypeModal from '../modals/AdminAddMenuItemTypeModal';
 
 // ✅ Define Menu Item Interface
 interface MenuItem {
@@ -39,7 +40,7 @@ const AdminMenuScreen = () => {
   const [menuItemTypes, setMenuItemTypes] = useState<MenuItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-
+  const [addMenuItemTypeModalVisible, setAddMenuItemTypeModalVisible] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const [menuItemName, setMenuItemName] = useState('');
   const [menuItemDescription, setMenuItemDescription] = useState('');
@@ -167,6 +168,10 @@ const AdminMenuScreen = () => {
     }
   };
 
+  const addMenuItemType = () => {
+    setAddMenuItemTypeModalVisible(true);
+  };
+
 
   return (
     <View style={styles.container}>
@@ -177,25 +182,38 @@ const AdminMenuScreen = () => {
       <TextInput style={styles.input} placeholder="Description" value={menuItemDescription} onChangeText={setMenuItemDescription} />
       <TextInput style={styles.input} placeholder="Price" value={menuItemPrice} onChangeText={setMenuItemPrice} keyboardType="numeric" />
 
-      {/* 🔹 Menu Item Type Selection */}
+      <Text style={styles.label}>Select Menu Item Type:</Text>
       <View style={styles.sectionContainer}>
-        <Text style={styles.label}>Select Menu Item Type:</Text>
         <FlatList
-          data={menuItemTypes}
+          data={[...menuItemTypes, { id: 'add_button', name: 'add' }]} // ✅ Add a fake item for "+"
           horizontal
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.itemTypeContainer} // ✅ Ensures even spacing
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.itemTypeButton, selectedMenuItemType === item.id && styles.selectedItemType]}
-              onPress={() => setSelectedMenuItemType(item.id)}>
-              <Text style={[styles.itemTypeText, selectedMenuItemType === item.id && styles.selectedItemTypeText]}>
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) =>
+            item.id !== 'add_button' ? (
+              <TouchableOpacity
+                style={[
+                  styles.itemTypeButton,
+                  selectedMenuItemType === item.id && styles.selectedItemType,
+                ]}
+                onPress={() => setSelectedMenuItemType(item.id)}>
+                <Text
+                  style={[
+                    styles.itemTypeText,
+                    selectedMenuItemType === item.id && styles.selectedItemTypeText,
+                  ]}>
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              // ✅ "+" Button for Adding a New Menu Item Type
+              <TouchableOpacity style={styles.addFoodTypeButton} onPress={addMenuItemType}>
+                <Text style={styles.plusText}>+</Text>
+              </TouchableOpacity>
+            )
+          }
         />
       </View>
+
 
       {/* 🔹 Image Picker */}
       <View style={styles.sectionContainer}>
@@ -249,7 +267,14 @@ const AdminMenuScreen = () => {
           menuItemTypes={menuItemTypes}
           refreshMenu={fetchMenuItems}
         />
+
       )}
+
+      <AdminAddMenuItemTypeModal
+        visible={addMenuItemTypeModalVisible}
+        onClose={() => setAddMenuItemTypeModalVisible(false)}
+        fetchMenuItemTypes = {fetchMenuItemTypes}
+      />
     </View>
   );
 };
@@ -286,31 +311,6 @@ const styles = StyleSheet.create({
     },
     sectionContainer: {
       marginBottom: 15, // ✅ Adds consistent spacing between sections
-    },
-    itemTypeContainer: {
-      flexDirection: 'row',
-      marginTop: 8,
-    },
-    itemTypeButton: {
-      backgroundColor: '#DDD',
-      height: 40,
-      paddingVertical: 8,
-      paddingHorizontal: 15,
-      borderRadius: 20,
-      marginRight: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    selectedItemType: {
-      backgroundColor: '#B00020',
-    },
-    itemTypeText: {
-      fontSize: 14,
-      color: '#333',
-    },
-    selectedItemTypeText: {
-      color: '#FFF',
-      fontWeight: 'bold',
     },
     imagePicker: {
       backgroundColor: '#B00020',
@@ -386,6 +386,38 @@ const styles = StyleSheet.create({
     removeImageText: {
       color: '#FFF',
       fontSize: 14,
+      fontWeight: 'bold',
+    },
+    itemTypeButton: {
+      backgroundColor: '#DDD',
+      height: 40,
+      paddingVertical: 8,
+      paddingHorizontal: 15,
+      borderRadius: 20,
+      marginRight: 8,
+    },
+    selectedItemType: {
+      backgroundColor: '#B00020',
+    },
+    itemTypeText: {
+      color: '#333',
+    },
+    selectedItemTypeText: {
+      color: '#FFF',
+    },
+    addFoodTypeButton: {
+      width: 25,
+      height: 25,
+      marginTop: 7,
+      borderRadius: 20, // Circular shape
+      backgroundColor: '#B00020',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 10, // Space from last item
+    },
+    plusText: {
+      fontSize: 15,
+      color: '#FFF',
       fontWeight: 'bold',
     },
   });
