@@ -8,8 +8,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { supabase } from '../../supabaseConfig'; // Import Supabase config
+import { NavigationProps } from '../navigation/types';
+import { useNavigation } from '@react-navigation/native';
 
 interface Restaurant {
 id: string;
@@ -25,13 +28,16 @@ food_type: string;
 image_url?: string;
 }
 
-const UserDashboardScreen = ({ navigation }: any)  => {
+const UserDashboardScreen = ()  => {
+  const navigation = useNavigation<NavigationProps>();
+  const [user, setUser] = useState<{ firstName: string; lastName: string } | null>(null);
   const [searchText, setSearchText] = useState('');
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
   const [foodTypes, setFoodTypes] = useState<FoodType[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFoodType, setSelectedFoodType] = useState<string | null>(null);
+  const [isSidebarVisible, setSidebarVisible] = useState<boolean>(false);
 
   // 🔹 Fetch Food Types from Supabase
   const fetchFoodTypes = async () => {
@@ -67,6 +73,25 @@ const UserDashboardScreen = ({ navigation }: any)  => {
   };
 
   useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {return;}
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('firstName, lastName')
+        .eq('id', data.user.id)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user details:', userError);
+      } else {
+        setUser(userData);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
     fetchFoodTypes();
     fetchRestaurants();
   }, []);
@@ -80,42 +105,114 @@ const UserDashboardScreen = ({ navigation }: any)  => {
     setFilteredRestaurants(filtered);
   }, [searchText, restaurants]);
 
+  const openUserProfile = () => {
+    navigation.navigate('UserProfileScreen');
+  };
+
+
   return (
     <View style={styles.container}>
-      {/* 🔹 Search Bar */}
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Search for food or restaurants..."
-        placeholderTextColor="#888"
-        value={searchText}
-        onChangeText={setSearchText}
-      />
-      <View>
-{/* 🔹 Food Types (Categories) */}
-<Text style={styles.sectionTitle}>Categories</Text>
-      <FlatList
-        data={foodTypes}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.categoriesContainer}
-        renderItem={({ item }) => {
-          const isSelected = selectedFoodType === item.id;
-          return (
-            <TouchableOpacity
-              style={[styles.foodTypeCard, isSelected && styles.selectedFoodTypeCard]}
-              onPress={() => {
-                filterRestaurants(item.id);
-              }}
-              >
-              <Image source={{ uri: item.image_url }} style={styles.foodTypeImage} />
-              <Text style={[styles.foodTypeText, isSelected && styles.selectedFoodTypeText]}>
-                {item.food_type}
-              </Text>
+
+      {/* 🔹 Sidebar (Left) */}
+      <Modal visible={isSidebarVisible} animationType="slide" transparent={true}>
+        <View style={styles.sidebarContainer}>
+          <View style={styles.sidebarContent}>
+            {/* Close Button */}
+            <TouchableOpacity style={styles.closeButton} onPress={() => setSidebarVisible(false)}>
+              <Text style={styles.closeButtonText}>X</Text>
             </TouchableOpacity>
-          );
-        }}
-      />
+
+            {/* User Info */}
+            <Text style={styles.sidebarUser}>
+              {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+            </Text>
+
+            {/* Sidebar Options */}
+            {[
+              { name: 'Home', screen: 'UserDashboardScreen' },
+              { name: 'Vote', screen: 'UserVoteScreen' },
+              { name: 'Profile', screen: 'UserProfileScreen' },
+              { name: 'Orders', screen: 'UserOrdersScreen' },
+              { name: 'Notifications', screen: 'UserNotificationsScreen' },
+            ].map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.sidebarOption}
+                onPress={() => {
+                  setSidebarVisible(false);
+                  if(item.screen === 'UserDashboardScreen')
+                  {
+                    navigation.navigate('UserDashboardScreen');
+                  } else if(item.screen === 'UserNotificationsScreen')
+                  {
+                    navigation.navigate('UserNotificationsScreen');
+                  } else if(item.screen === 'UserVoteScreen')
+                  {
+                    navigation.navigate('UserVoteScreen');
+                  } else
+                  {
+                    navigation.navigate('UserOrdersScreen');
+                  }
+                }}>
+                <Text style={styles.sidebarOptionText}>{item.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+      {/* 🔹 Search Bar */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setSidebarVisible(true)}>
+          <Image
+            source={require('../assets/direction.png')}
+            style={styles.sidebarIcon}
+          />
+        </TouchableOpacity>
+        <View style={styles.searchContainer}>
+            <Image
+              source={require('../assets/search-icon.png')}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              placeholder="Search for food or restaurants..."
+              placeholderTextColor="#888"
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+        </View>
+        <TouchableOpacity onPress={() => openUserProfile()}>
+          <Image
+            source={require('../assets/male-user-icon.png')}
+            style={styles.profileIcon}
+          />
+        </TouchableOpacity>
+      </View>
+    <View>
+    {/* 🔹 Food Types (Categories) */}
+    <Text style={styles.sectionTitle}>Categories</Text>
+    <FlatList
+      data={foodTypes}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.categoriesContainer}
+      renderItem={({ item }) => {
+        const isSelected = selectedFoodType === item.id;
+        return (
+          <TouchableOpacity
+            style={[styles.foodTypeCard, isSelected && styles.selectedFoodTypeCard]}
+            onPress={() => {
+              filterRestaurants(item.id);
+            }}
+            >
+            <Image source={{ uri: item.image_url }} style={styles.foodTypeImage} />
+            <Text style={[styles.foodTypeText, isSelected && styles.selectedFoodTypeText]}>
+              {item.food_type}
+            </Text>
+          </TouchableOpacity>
+        );
+      }}
+    />
 
       {/* 🔹 Restaurants List */}
       <Text style={styles.sectionTitle}>Restaurants</Text>
@@ -157,15 +254,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  searchBar: {
-    backgroundColor: '#FFF',
-    padding: 12,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderRadius: 10,
-    marginVertical: 15,
-    fontSize: 16,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#DDD',
+    marginBottom: 10, // Creates better separation
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    flex: 1,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+  },
+  searchIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#000',
+  },
+  profileIcon: {
+    width: 40,
+    height: 40,
+    marginLeft: 10,
+  },
+  sidebarIcon: {
+    width: 40,
+    height: 40,
+    marginRight: 10,
   },
   sectionTitle: {
     fontSize: 20,
@@ -231,4 +353,12 @@ const styles = StyleSheet.create({
   loader: {
     marginTop: 20,
   },
+  sidebarContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+  sidebarContent: { width: '75%', height: '100%', backgroundColor: '#fff', padding: 20 },
+  closeButton: { alignSelf: 'flex-end' },
+  closeButtonText: { fontSize: 22, fontWeight: 'bold', color: '#B00020' },
+  sidebarUser: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
+  sidebarOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  iconPlaceholder: { width: 24, height: 24, marginRight: 10, backgroundColor: '#DDD', borderRadius: 5 },
+  sidebarOptionText: { fontSize: 16, fontWeight: 'bold', color: '#333' },
 });

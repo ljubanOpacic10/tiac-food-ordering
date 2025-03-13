@@ -12,6 +12,10 @@ import AdminUsersScreen from './src/screens/AdminUsersScreen';
 import UserDashboardScreen from './src/screens/UserDashboardScreen';
 import AdminMenuScreen from './src/screens/AdminMenuScreen';
 import UserRestaurantMenuScreen from './src/screens/UserRestaurantMenuScreen';
+import UserProfileScreen from './src/screens/UserProfileScreen';
+import UserOrdersScreen from './src/screens/UserOrdersScreen';
+import UserNotificationsScreen from './src/screens/UserNotificationsScreen';
+import UserVoteScreen from './src/screens/UserVoteScreen';
 
 const Stack = createStackNavigator();
 
@@ -50,6 +54,22 @@ function App(): React.JSX.Element {
         <Stack.Screen
           name = "UserRestaurantMenuScreen"
           component={UserRestaurantMenuScreen}
+        />
+        <Stack.Screen
+          name = "UserProfileScreen"
+          component={UserProfileScreen}
+        />
+        <Stack.Screen
+        name = "UserOrdersScreen"
+        component={UserOrdersScreen}
+        />
+        <Stack.Screen
+        name = "UserNotificationsScreen"
+        component={UserNotificationsScreen}
+        />
+        <Stack.Screen
+        name = "UserVoteScreen"
+        component={UserVoteScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>
