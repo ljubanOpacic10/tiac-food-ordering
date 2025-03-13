@@ -11,6 +11,7 @@ export type RootStackParamList = {
   AdminUsersScreen: undefined;
   UserDashboardScreen: undefined;
   AdminMenuScreen: undefined;
+  UserRestaurantMenuScreen: undefined;
 };
 
 export type NavigationProps = NativeStackNavigationProp<RootStackParamList>;

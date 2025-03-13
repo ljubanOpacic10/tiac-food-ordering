@@ -15,10 +15,11 @@ import { supabase } from '../../supabaseConfig';
 interface AdminAddMenuItemTypeModalProps {
   visible: boolean;
   onClose: () => void;
-  fetchMenuItemTypes: () => void; // Refresh food types after adding
+  restaurant_id: string;
+  fetchMenuItemTypes: (restaurant_id: string) => void; // Refresh food types after adding
 }
 
-const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ visible, onClose, fetchMenuItemTypes }) => {
+const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ visible, onClose, restaurant_id,fetchMenuItemTypes }) => {
   const [menuItemTypeName, setMenuItemTypeName] = useState('');
   const [uploading, setUploading] = useState(false);
 
@@ -41,7 +42,7 @@ const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ v
 
       Alert.alert('Success', 'Food type added successfully!');
       setMenuItemTypeName('');
-      fetchMenuItemTypes(); // Refresh food types list
+      fetchMenuItemTypes(restaurant_id); // Refresh food types list
       onClose(); // Close modal
     } catch (error) {
       console.error('Supabase Insert Error:', error);

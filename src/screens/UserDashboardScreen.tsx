@@ -28,10 +28,10 @@ image_url?: string;
 const UserDashboardScreen = ({ navigation }: any)  => {
   const [searchText, setSearchText] = useState('');
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
   const [foodTypes, setFoodTypes] = useState<FoodType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant[]>();
-  const [selectedFoodType, setSelectedFoodType] = useState<FoodType>();
+  const [selectedFoodType, setSelectedFoodType] = useState<string | null>(null);
 
   // 🔹 Fetch Food Types from Supabase
   const fetchFoodTypes = async () => {
@@ -50,14 +50,35 @@ const UserDashboardScreen = ({ navigation }: any)  => {
       console.error('Error fetching restaurants:', error);
     } else {
       setRestaurants(data);
+      setFilteredRestaurants(data);
     }
     setLoading(false);
+  };
+
+  // 🔹 Filter Menu Items by Selected Type
+  const filterRestaurants = (foodTypeId: string) => {
+    if (selectedFoodType === foodTypeId) {
+      setSelectedFoodType(null);
+      setFilteredRestaurants(restaurants);
+    } else {
+      setSelectedFoodType(foodTypeId);
+      setFilteredRestaurants(restaurants.filter((item) => item.food_type_id === foodTypeId));
+    }
   };
 
   useEffect(() => {
     fetchFoodTypes();
     fetchRestaurants();
   }, []);
+
+  useEffect(() => {
+    const filtered = restaurants.filter(restaurant =>
+      `${restaurant.name}`
+        .toLowerCase()
+        .includes(searchText.toLowerCase())
+    );
+    setFilteredRestaurants(filtered);
+  }, [searchText, restaurants]);
 
   return (
     <View style={styles.container}>
@@ -69,44 +90,60 @@ const UserDashboardScreen = ({ navigation }: any)  => {
         value={searchText}
         onChangeText={setSearchText}
       />
-
-      {/* 🔹 Food Types (Glovo Style) */}
-      <Text style={styles.sectionTitle}>Categories</Text>
+      <View>
+{/* 🔹 Food Types (Categories) */}
+<Text style={styles.sectionTitle}>Categories</Text>
       <FlatList
         data={foodTypes}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.foodTypeList}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.foodTypeCard}>
-            <Image source={{ uri: item.image_url }} style={styles.foodTypeImage} />
-            <Text style={styles.foodTypeText}>{item.food_type}</Text>
-          </TouchableOpacity>
-        )}
+        contentContainerStyle={styles.categoriesContainer}
+        renderItem={({ item }) => {
+          const isSelected = selectedFoodType === item.id;
+          return (
+            <TouchableOpacity
+              style={[styles.foodTypeCard, isSelected && styles.selectedFoodTypeCard]}
+              onPress={() => {
+                filterRestaurants(item.id);
+              }}
+              >
+              <Image source={{ uri: item.image_url }} style={styles.foodTypeImage} />
+              <Text style={[styles.foodTypeText, isSelected && styles.selectedFoodTypeText]}>
+                {item.food_type}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
       />
 
       {/* 🔹 Restaurants List */}
       <Text style={styles.sectionTitle}>Restaurants</Text>
       {loading ? (
-        <ActivityIndicator size="large" color="#B00020" />
+        <ActivityIndicator size="large" color="#B00020" style={styles.loader} />
       ) : (
         <FlatList
-          data={restaurants}
+          data={filteredRestaurants}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.restaurantsContainer}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.restaurantCard}
-              onPress={() =>
-                navigation.navigate('RestaurantMenuScreen', { restaurantId: item.id, restaurantName: item.name })
-              }>
+              onPress={() => {
+                navigation.navigate('UserRestaurantMenuScreen', {
+                  restaurantId: item.id,
+                  restaurantName: item.name,
+                });
+              }}
+              >
               <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
               <Text style={styles.restaurantName}>{item.name}</Text>
             </TouchableOpacity>
           )}
         />
       )}
+      </View>
     </View>
   );
 };
@@ -118,6 +155,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
     paddingHorizontal: 20,
+    paddingTop: 20,
   },
   searchBar: {
     backgroundColor: '#FFF',
@@ -132,49 +170,65 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginVertical: 10,
     color: '#B00020',
+    marginBottom: 10, // Consistent margin for both sections
   },
-  foodTypeList: {
-    paddingBottom: 10,
+  categoriesContainer: {
+    paddingBottom: 15, // Adds space between Categories and Restaurants
   },
   foodTypeCard: {
     alignItems: 'center',
-    marginRight: 15,
+    justifyContent: 'center',
+    height: 80, // Smaller height for categories
+    width: 80, // Smaller width for categories
+    marginRight: 10,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  selectedFoodTypeCard: {
+    backgroundColor: '#B00020',
+    borderColor: '#B00020',
+  },
+  selectedFoodTypeText: {
+    color: '#FFF',
   },
   foodTypeImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 50,
-    marginBottom: 5,
+    width: 50, // Smaller image size
+    height: 50, // Smaller image size
+    marginBottom: 5, // Reduced margin
   },
   foodTypeText: {
-    fontSize: 14,
+    fontSize: 12, // Smaller font size
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
+  },
+  restaurantsContainer: {
+    paddingBottom: 20, // Adds space at the bottom of the list
   },
   restaurantCard: {
     backgroundColor: '#FFF',
     borderRadius: 10,
     padding: 10,
     marginVertical: 8,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#DDD',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   restaurantImage: {
     width: '100%',
     height: 120,
     borderRadius: 10,
+    marginBottom: 8,
   },
   restaurantName: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginTop: 8,
     color: '#333',
+    textAlign: 'center',
+  },
+  loader: {
+    marginTop: 20,
   },
 });

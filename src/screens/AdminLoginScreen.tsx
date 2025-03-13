@@ -61,7 +61,10 @@ const AdminLoginScreen = () => {
     }
 
     if (userData.type === 'admin') {
-      navigation.navigate('AdminDashboard');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AdminDashboard' }],
+      });
       setLoading(false);
     } else {
       Alert.alert('Unauthorized', 'You are not an admin.');

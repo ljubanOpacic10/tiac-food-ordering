@@ -11,6 +11,7 @@ import AdminRestaurantsScreen from './src/screens/AdminRestaurantsScreen';
 import AdminUsersScreen from './src/screens/AdminUsersScreen';
 import UserDashboardScreen from './src/screens/UserDashboardScreen';
 import AdminMenuScreen from './src/screens/AdminMenuScreen';
+import UserRestaurantMenuScreen from './src/screens/UserRestaurantMenuScreen';
 
 const Stack = createStackNavigator();
 
@@ -19,10 +20,7 @@ function App(): React.JSX.Element {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
-          headerStyle: {backgroundColor: '#B00020'},
-          headerTintColor: '#fff',
-          headerTitle: '',
-          headerShadowVisible: false,
+          headerShown: false,
         }}>
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="UserLoginScreen" component={UserLoginScreen} />
@@ -30,7 +28,6 @@ function App(): React.JSX.Element {
         <Stack.Screen
           name="AdminDashboard"
           component={AdminDashboard}
-          options={{headerShown: false}} // ✅ Hides the header for AdminDashboard
         />
         <Stack.Screen name="AdminUsersScreen" component={AdminUsersScreen} />
         <Stack.Screen
@@ -49,6 +46,10 @@ function App(): React.JSX.Element {
         <Stack.Screen
           name="AdminMenuScreen"
           component={AdminMenuScreen}
+        />
+        <Stack.Screen
+          name = "UserRestaurantMenuScreen"
+          component={UserRestaurantMenuScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

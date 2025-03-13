@@ -59,7 +59,10 @@ const UserLoginScreen = () => {
         }
 
         if (userData.type === 'user') {
-          navigation.navigate('UserDashboardScreen');
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'UserDashboardScreen' }],
+          });
           setLoading(false);
         } else {
           Alert.alert('Unauthorized', 'You are not an user.');

@@ -34,7 +34,7 @@ interface MenuItemType {
 
 const AdminMenuScreen = () => {
   const route = useRoute();
-  const { restaurantId, restaurantName } = route.params as { restaurantId: string; restaurantName: string };
+  const { restaurant_id, restaurantName } = route.params as { restaurant_id: string; restaurantName: string };
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [menuItemTypes, setMenuItemTypes] = useState<MenuItemType[]>([]);
@@ -54,7 +54,7 @@ const AdminMenuScreen = () => {
     const { data, error } = await supabase
       .from('menu_items')
       .select('*')
-      .eq('restaurant_id', restaurantId);
+      .eq('restaurant_id', restaurant_id);
 
     if (error) {
       Alert.alert('Error', 'Failed to fetch menu items.');
@@ -66,22 +66,49 @@ const AdminMenuScreen = () => {
   };
 
   // 🔹 Fetch Menu Item Types
-  const fetchMenuItemTypes = async () => {
-    const { data, error } = await supabase.from('menu_item_types').select('*');
+  const fetchMenuItemTypes = async (restaurant_id: string) => {
+      try {
+        // ✅ Step 1: Get menu item type IDs from menu_items that belong to this restaurant
+        const { data: menuItems, error: menuItemsError } = await supabase
+          .from('menu_items')
+          .select('menu_item_type_id')
+          .eq('restaurant_id', restaurant_id);
 
-    if (error) {
-      Alert.alert('Error', 'Failed to fetch menu item types.');
-      console.error('Supabase Error:', error);
-    } else {
-      setMenuItemTypes(data);
-    }
-  };
+        if (menuItemsError) {
+          console.error('Error fetching menu items:', menuItemsError);
+          return;
+        }
+
+        // ✅ Extract unique menu item type IDs
+        const uniqueTypeIds = [...new Set(menuItems.map(item => item.menu_item_type_id))];
+
+        if (uniqueTypeIds.length === 0) {
+          console.log('No menu item types found for this restaurant.');
+          setMenuItemTypes([]);
+          return;
+        }
+
+        // ✅ Step 2: Fetch only menu item types that match these IDs
+        const { data: types, error: typesError } = await supabase
+          .from('menu_item_types')
+          .select('*')
+          .in('id', uniqueTypeIds);
+
+        if (typesError) {
+          console.error('Error fetching menu item types:', typesError);
+        } else {
+          setMenuItemTypes(types);
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching menu item types:', error);
+      }
+    };
 
   useEffect(() => {
     fetchMenuItems();
-    fetchMenuItemTypes();
+    fetchMenuItemTypes(restaurant_id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [restaurant_id]);
 
   // 🔹 Select an Image from the Gallery
   const pickImage = () => {
@@ -146,7 +173,7 @@ const AdminMenuScreen = () => {
           description: menuItemDescription.trim(),
           price: parseFloat(menuItemPrice),
           image_url: imageUrl,
-          restaurant_id: restaurantId,
+          restaurant_id: restaurant_id,
           menu_item_type_id: selectedMenuItemType,
         },
       ]);
@@ -273,6 +300,7 @@ const AdminMenuScreen = () => {
       <AdminAddMenuItemTypeModal
         visible={addMenuItemTypeModalVisible}
         onClose={() => setAddMenuItemTypeModalVisible(false)}
+        restaurant_id = {restaurant_id}
         fetchMenuItemTypes = {fetchMenuItemTypes}
       />
     </View>
