@@ -146,12 +146,15 @@ const UserDashboardScreen = ()  => {
                   } else if(item.screen === 'UserNotificationsScreen')
                   {
                     navigation.navigate('UserNotificationsScreen');
-                  } else if(item.screen === 'UserVoteScreen')
-                  {
-                    navigation.navigate('UserVoteScreen');
-                  } else
+                  } else if(item.screen === 'UserOrdersScreen')
                   {
                     navigation.navigate('UserOrdersScreen');
+                  } else if(item.screen === 'UserProfileScreen')
+                  {
+                    navigation.navigate('UserProfileScreen');
+                  }else
+                  {
+                    navigation.navigate('UserVoteScreen');
                   }
                 }}>
                 <Text style={styles.sidebarOptionText}>{item.name}</Text>

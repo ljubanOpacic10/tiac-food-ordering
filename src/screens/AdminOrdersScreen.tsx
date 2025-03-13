@@ -236,6 +236,12 @@ const AdminOrdersScreen = () => {
             onPress={() => updateOrderStatus(item.id, 'canceled')}>
             <Text style={styles.buttonText}>Canceled</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.statusButton, item.status === 'paid' && styles.selectedStatus]}
+            onPress={() => updateOrderStatus(item.id, 'paid')}>
+            <Text style={styles.buttonText}>Canceled</Text>
+          </TouchableOpacity>
           </View>
           </View>
 
