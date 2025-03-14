@@ -129,27 +129,27 @@ const UserDashboardScreen = ()  => {
 
             {/* Sidebar Options */}
             {[
-              { name: 'Home', screen: 'UserDashboardScreen' },
-              { name: 'Vote', screen: 'UserVoteScreen' },
-              { name: 'Profile', screen: 'UserProfileScreen' },
-              { name: 'Orders', screen: 'UserOrdersScreen' },
-              { name: 'Notifications', screen: 'UserNotificationsScreen' },
+              { name: 'Home', imgSrc: require('../assets/home.png') },
+              { name: 'Vote', imgSrc: require('../assets/voting-icon.png') },
+              { name: 'Profile', imgSrc: require('../assets/user.png') },
+              { name: 'Orders', imgSrc: require('../assets/orders-icon.png') },
+              { name: 'Notifications', imgSrc: require('../assets/notification-icon.png') },
             ].map((item, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.sidebarOption}
                 onPress={() => {
                   setSidebarVisible(false);
-                  if(item.screen === 'UserDashboardScreen')
+                  if(item.name === 'Home')
                   {
                     navigation.navigate('UserDashboardScreen');
-                  } else if(item.screen === 'UserNotificationsScreen')
+                  } else if(item.name === '')
                   {
                     navigation.navigate('UserNotificationsScreen');
-                  } else if(item.screen === 'UserOrdersScreen')
+                  } else if(item.name === '')
                   {
                     navigation.navigate('UserOrdersScreen');
-                  } else if(item.screen === 'UserProfileScreen')
+                  } else if(item.name === '')
                   {
                     navigation.navigate('UserProfileScreen');
                   }else
@@ -157,6 +157,10 @@ const UserDashboardScreen = ()  => {
                     navigation.navigate('UserVoteScreen');
                   }
                 }}>
+                <Image
+                  source={item.imgSrc}
+                  style={styles.sidebarOptionIcons}
+                />
                 <Text style={styles.sidebarOptionText}>{item.name}</Text>
               </TouchableOpacity>
             ))}
@@ -262,7 +266,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderRadius: 10,
-    marginBottom: 10, // Creates better separation
+    marginBottom: 10,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -356,12 +360,48 @@ const styles = StyleSheet.create({
   loader: {
     marginTop: 20,
   },
-  sidebarContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sidebarContent: { width: '75%', height: '100%', backgroundColor: '#fff', padding: 20 },
-  closeButton: { alignSelf: 'flex-end' },
-  closeButtonText: { fontSize: 22, fontWeight: 'bold', color: '#B00020' },
-  sidebarUser: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
-  sidebarOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  iconPlaceholder: { width: 24, height: 24, marginRight: 10, backgroundColor: '#DDD', borderRadius: 5 },
-  sidebarOptionText: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  sidebarContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  sidebarContent: {
+    width: '75%',
+    height: '100%',
+    backgroundColor: '#fff',
+    padding: 20 },
+    closeButton: {
+    alignSelf: 'flex-end',
+  },
+  closeButtonText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#B00020',
+  },
+  sidebarUser: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  sidebarOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  iconPlaceholder: {
+    width: 24,
+    height: 24,
+    marginRight: 10,
+    backgroundColor: '#DDD',
+    borderRadius: 5,
+  },
+  sidebarOptionText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  sidebarOptionIcons: {
+    width: 30,
+    height: 30,
+    marginRight: 15,
+  },
 });
