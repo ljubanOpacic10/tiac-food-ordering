@@ -130,7 +130,7 @@ const UserDashboardScreen = ()  => {
             {/* Sidebar Options */}
             {[
               { name: 'Home', imgSrc: require('../assets/home.png') },
-              { name: 'Vote', imgSrc: require('../assets/voting-icon.png') },
+              { name: 'Vote/Order', imgSrc: require('../assets/voting-icon.png') },
               { name: 'Profile', imgSrc: require('../assets/user.png') },
               { name: 'Orders', imgSrc: require('../assets/orders-icon.png') },
               { name: 'Notifications', imgSrc: require('../assets/notification-icon.png') },
@@ -143,18 +143,18 @@ const UserDashboardScreen = ()  => {
                   if(item.name === 'Home')
                   {
                     navigation.navigate('UserDashboardScreen');
-                  } else if(item.name === '')
+                  } else if(item.name === 'Notifications')
                   {
                     navigation.navigate('UserNotificationsScreen');
-                  } else if(item.name === '')
+                  } else if(item.name === 'Orders')
                   {
                     navigation.navigate('UserOrdersScreen');
-                  } else if(item.name === '')
+                  } else if(item.name === 'Profile')
                   {
                     navigation.navigate('UserProfileScreen');
                   }else
                   {
-                    navigation.navigate('UserVoteScreen');
+                    navigation.navigate('UserVoteOrderScreen');
                   }
                 }}>
                 <Image
