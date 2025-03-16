@@ -27,11 +27,13 @@ interface OrderingSession {
   status: string;
 }
 
-interface UserVotes{
+interface MenuItem {
   id: string;
-  user_id: string;
-  restaurant_id: string;
-  pick: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url?: string;
+  menu_item_type_id: string;
 }
 
 const UserVoteOrderScreen = () => {
@@ -39,8 +41,9 @@ const UserVoteOrderScreen = () => {
   const navigation = useNavigation<NavigationProps>();
   const [activeVotingSession, setActiveVotingSession] = useState<VotingSession | null>(null);
   const [activeOrderingSession, setActiveOrderingSession] = useState<OrderingSession | null>(null);
-  const [userVotes, setUserVotes] = useState<UserVotes[] | null>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [selectedRestaurant, setselectedRestaurant] = useState<Restaurant>();
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [editable, setEditable] = useState(false); // Prevent editing until "Edit Votes" is clicked
 
@@ -53,7 +56,6 @@ const UserVoteOrderScreen = () => {
   const [secondPickEdited, setSecondPickEdited] = useState<string | null>(null);
   const [thirdPickEdited, setThirdPickEdited] = useState<string | null>(null);
 
-  const [votesSubmitted, setVotesSubmitted] = useState(false);
 
   useEffect(() => {
     fetchUser();
@@ -137,8 +139,6 @@ const UserVoteOrderScreen = () => {
 
     if (!error && data.length > 0) {
       setEditable(false);
-      setUserVotes(data);
-      setVotesSubmitted(true); // ✅ User has already voted, disable editing
       setEditable(false);
 
       // ✅ Set previous picks from Supabase
@@ -175,7 +175,6 @@ const UserVoteOrderScreen = () => {
     if (!editable) {
       // ✅ Toggle Edit Mode
       setEditable(true);
-      setVotesSubmitted(false);
       return;
     }
     if(firstPick || secondPick || thirdPick)
@@ -225,7 +224,6 @@ const UserVoteOrderScreen = () => {
         { user_id: user?.id, restaurant_id: secondPick, pick: 'second' },
         { user_id: user?.id, restaurant_id: thirdPick, pick: 'third' },
       ]);
-      setVotesSubmitted(true);
       setEditable(false);
       Alert.alert('Success', 'Your votes have been submitted!');
     } else{
