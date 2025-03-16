@@ -4,6 +4,7 @@ import { supabase } from '../../supabaseConfig';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker'; // For dropdowns
 import { NavigationProps } from '../navigation/types';
+import MultiSelect from 'react-native-multiple-select';
 
 // ✅ Define Interfaces
 interface Restaurant {
@@ -43,7 +44,7 @@ const UserVoteOrderScreen = () => {
   const [activeOrderingSession, setActiveOrderingSession] = useState<OrderingSession | null>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant>();
-  const [selectedMenuItem, setSelectedMenuItem] = useState<string | null>(null);
+  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [editable, setEditable] = useState(false); // Prevent editing until "Edit Votes" is clicked
@@ -405,18 +406,24 @@ const UserVoteOrderScreen = () => {
           </Picker>
 
           {/* 🔹 Select Menu Item */}
-          <Text style={styles.label}>Pick a Menu Item</Text>
-          <Picker
-            selectedValue={selectedMenuItem}
-            onValueChange={(value) => setSelectedMenuItem(value)}
-            enabled={!!selectedRestaurant}
-            style={[styles.picker, !selectedRestaurant && styles.disabledPicker]}
-          >
-            <Picker.Item label="Select an item" value={null} />
-            {menuItems.map((menuItem) => (
-              <Picker.Item key={menuItem.id} label={menuItem.name + ' price:' + menuItem.price} value={menuItem.id} />
-            ))}
-          </Picker>
+          <MultiSelect
+          items={menuItems.map(item => ({ id: item.id, name: `${item.name} - ${item.price} RSD` }))}
+          uniqueKey="id"
+          onSelectedItemsChange={setSelectedMenuItems}
+          selectedItems={selectedMenuItems}
+          selectText="Pick Menu Items"
+          searchInputPlaceholderText="Search Items..."
+          tagRemoveIconColor="#B00020"
+          tagBorderColor="#B00020"
+          tagTextColor="#B00020"
+          selectedItemTextColor="#B00020"
+          selectedItemIconColor="#B00020"
+          itemTextColor="#000"
+          displayKey="name"
+          searchInputStyle={{ color: '#000' }}
+          submitButtonColor="#B00020"
+          submitButtonText="Confirm Selection"
+        />
 
           {/* 🔹 Order Description */}
           <Text style={styles.label}>Write Your Order</Text>
