@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, TextInput } from 'react-native';
 import { supabase } from '../../supabaseConfig';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker'; // For dropdowns
@@ -42,11 +42,12 @@ const UserVoteOrderScreen = () => {
   const [activeVotingSession, setActiveVotingSession] = useState<VotingSession | null>(null);
   const [activeOrderingSession, setActiveOrderingSession] = useState<OrderingSession | null>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [selectedRestaurant, setselectedRestaurant] = useState<Restaurant>();
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant>();
+  const [selectedMenuItem, setSelectedMenuItem] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [editable, setEditable] = useState(false); // Prevent editing until "Edit Votes" is clicked
-
+  const [orderDescription, setOrderDescription] = useState<string>('');
   // 🔹 State for Selected Votes
   const [firstPick, setFirstPick] = useState<string | null>(null);
   const [secondPick, setSecondPick] = useState<string | null>(null);
@@ -107,6 +108,28 @@ const UserVoteOrderScreen = () => {
     }
   };
 
+  const fetchMenuItems = async (restaurant: Restaurant | null) => {
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('restaurant_id', restaurant?.id);
+
+      if (error) {
+        //implement
+      } else {
+        setMenuItems(data);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    }
+
+    setLoading(false);
+  };
+
+
   const fetchVotingSessions = async () => {
     const { data: votingSessions } = await supabase
       .from('voting_sessions')
@@ -126,6 +149,7 @@ const UserVoteOrderScreen = () => {
 
     setActiveOrderingSession(orderingSessions);
   };
+
 
     // 🔹 Fetch User Votes & Set Initial Picks
   const fetchUserVotes = async () => {
@@ -236,20 +260,24 @@ const UserVoteOrderScreen = () => {
     return <ActivityIndicator size="large" color="#B00020" />;
   }
 
-  function changeFirstPick(value: string | null): void {
+  const changeFirstPick = (value: string | null) => {
     setFirstPickEdited(firstPick);
     setFirstPick(value);
-  }
+  };
 
-  function changeSecondPick(value: string | null): void {
+  const changeSecondPick = (value: string | null) => {
     setSecondPickEdited(secondPick);
     setSecondPick(value);
-  }
+  };
 
-  function changeThirdPick(value: string | null): void {
+  const changeThirdPick = (value: string | null) => {
     setThirdPickEdited(thirdPick);
     setThirdPick(value);
-  }
+  };
+
+  const submitOrder = async () => {
+    //implement
+  };
 
   return (
     <View style={styles.container}>
@@ -314,11 +342,95 @@ const UserVoteOrderScreen = () => {
             keyExtractor={(item) => item.id}
             renderItem={({ item, index }) => (
               <View style={[styles.restaurantCard, index === 0 && styles.firstPlace, index === 1 && styles.secondPlace, index === 2 && styles.thirdPlace]}>
+                <TouchableOpacity onPress={() => {
+                  navigation.navigate('UserRestaurantMenuScreen', {
+                  restaurantId: item.id,
+                  restaurantName: item.name,
+                });
+                }}>
                 <Text style={styles.restaurantName}>{item.name}</Text>
                 <Text style={styles.voteCount}>{item.votes} points</Text>
+                </TouchableOpacity>
               </View>
             )}
           />
+        </>
+      ) : activeOrderingSession ? (
+        <>
+          {/* 🔹 Ordering Session */}
+          <Text style={styles.title}>Voting Session Ended</Text>
+          <Text style={styles.subtitle}>Write your order</Text>
+
+          {/* 🔹 Display Results */}
+          <Text style={styles.sectionTitle}>Colleagues Picked</Text>
+          <FlatList
+            data={restaurants.filter((r) => r.votes > 0).slice(0,3)}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+              <View
+                style={[
+                  styles.restaurantCard,
+                  index === 0 && styles.firstPlace,
+                  index === 1 && styles.secondPlace,
+                  index === 2 && styles.thirdPlace,
+                ]}
+                >
+                <TouchableOpacity onPress={() => {
+                  navigation.navigate('UserRestaurantMenuScreen', {
+                  restaurantId: item.id,
+                  restaurantName: item.name,
+                });
+                }}>
+                <Text style={styles.restaurantName}>{item.name}</Text>
+                <Text style={styles.voteCount}>votes: {item.votes}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+
+          {/* 🔹 Select Restaurant */}
+          <Text style={styles.label}>Pick a Restaurant</Text>
+          <Picker
+            selectedValue={selectedRestaurant}
+            onValueChange={(value) => {
+              setSelectedRestaurant(value);
+              fetchMenuItems(value);
+            }}
+            style={styles.picker}
+          >
+            <Picker.Item label="Select a restaurant" value={null} />
+            {restaurants.filter((r) => r.votes > 0).slice(0,3).map((restaurant) => (
+              <Picker.Item key={restaurant.id} label={restaurant.name} value={restaurant} />
+            ))}
+          </Picker>
+
+          {/* 🔹 Select Menu Item */}
+          <Text style={styles.label}>Pick a Menu Item</Text>
+          <Picker
+            selectedValue={selectedMenuItem}
+            onValueChange={(value) => setSelectedMenuItem(value)}
+            enabled={!!selectedRestaurant}
+            style={[styles.picker, !selectedRestaurant && styles.disabledPicker]}
+          >
+            <Picker.Item label="Select an item" value={null} />
+            {menuItems.map((menuItem) => (
+              <Picker.Item key={menuItem.id} label={menuItem.name + ' price:' + menuItem.price} value={menuItem.id} />
+            ))}
+          </Picker>
+
+          {/* 🔹 Order Description */}
+          <Text style={styles.label}>Write Your Order</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Any additional instructions?"
+            value={orderDescription}
+            onChangeText={setOrderDescription}
+          />
+
+          {/* 🔹 Submit Order Button */}
+          <TouchableOpacity style={styles.button} onPress={() => submitOrder()}>
+            <Text style={styles.buttonText}>Submit Order</Text>
+          </TouchableOpacity>
         </>
       ) : (
         <Text style={styles.title}>No active voting session</Text>
@@ -345,5 +457,6 @@ const styles = StyleSheet.create({
   thirdPlace: { backgroundColor: '#CD7F32' },
   restaurantName: { fontSize: 16, fontWeight: 'bold' },
   voteCount: { fontSize: 14, color: '#666' },
+  textInput: { backgroundColor: '#FFF', padding: 10, borderRadius: 8, marginTop: 10 },
   disabledPicker: { backgroundColor: '#DDD' }, // ✅ Disable selection when read-only
 });
