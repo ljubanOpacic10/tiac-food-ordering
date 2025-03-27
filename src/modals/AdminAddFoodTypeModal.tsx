@@ -13,11 +13,10 @@ import {
 import { launchImageLibrary, ImageLibraryOptions } from 'react-native-image-picker';
 import { supabase } from '../../supabaseConfig';
 
-// 🔹 Define Props Interface
 interface AdminAddFoodTypeModalProps {
   visible: boolean;
   onClose: () => void;
-  fetchFoodTypes: () => void; // Refresh food types after adding
+  fetchFoodTypes: () => void;
 }
 
 const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, onClose, fetchFoodTypes }) => {
@@ -42,7 +41,6 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
     });
   };
 
-  // 🔹 Add New Food Type to Supabase
   const addFoodType = async () => {
     if (!foodTypeName.trim()) {
       Alert.alert('Error', 'Please enter a food type name.');
@@ -52,7 +50,6 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
     setUploading(true);
     let imageUrl = null;
 
-    // ✅ Upload Image if Selected
     if (imageUri) {
       try {
         const fileName = `${Date.now()}-${foodTypeName.replace(/\s/g, '-')}.jpg`;
@@ -65,7 +62,6 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
 
         if (error) {throw error;}
 
-        // ✅ Get Public Image URL
         const { data: publicUrlData } = supabase.storage
           .from('food_type_images')
           .getPublicUrl(fileName);
@@ -80,7 +76,6 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
     }
 
     try {
-      // ✅ Insert Data into Supabase Table
       const { error } = await supabase.from('food_types').insert([
         { food_type: foodTypeName.trim(), image_url: imageUrl },
       ]);
@@ -90,8 +85,8 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
       Alert.alert('Success', 'Food type added successfully!');
       setFoodTypeName('');
       setImageUri(null);
-      fetchFoodTypes(); // Refresh food types list
-      onClose(); // Close modal
+      fetchFoodTypes();
+      onClose();
     } catch (error) {
       console.error('Supabase Insert Error:', error);
       Alert.alert('Error', 'Failed to add food type.');
@@ -107,7 +102,6 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Add Food Type</Text>
 
-          {/* 🔹 Input Field */}
           <TextInput
             style={styles.input}
             placeholder="Enter food type name"
@@ -115,7 +109,6 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
             onChangeText={setFoodTypeName}
           />
 
-          {/* 🔹 Image Picker */}
           <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
             <Text style={styles.imagePickerText}>{imageUri ? 'Change Image' : 'Pick an Image'}</Text>
           </TouchableOpacity>
@@ -123,14 +116,12 @@ const AdminAddFoodTypeModal: React.FC<AdminAddFoodTypeModalProps> = ({ visible, 
          {imageUri && (
           <View style={styles.imageContainer}>
             <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-            {/* 🔹 Remove Image Button (X) */}
             <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
               <Text style={styles.removeImageText}>✕</Text>
             </TouchableOpacity>
           </View>
           )}
 
-          {/* 🔹 Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.addButton} onPress={addFoodType} disabled={uploading}>
               {uploading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Add</Text>}
@@ -192,7 +183,7 @@ const styles = StyleSheet.create({
       fontWeight: 'bold',
     },
     imageContainer: {
-      position: 'relative', // ✅ Allows positioning of "X" button
+      position: 'relative',
       alignSelf: 'center',
       marginBottom: 15,
     },
@@ -208,7 +199,7 @@ const styles = StyleSheet.create({
       backgroundColor: '#B00020',
       width: 22,
       height: 22,
-      borderRadius: 11, // ✅ Perfect circle
+      borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
     },

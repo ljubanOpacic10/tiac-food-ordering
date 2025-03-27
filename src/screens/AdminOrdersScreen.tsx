@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { supabase } from '../../supabaseConfig';
 
-// ✅ Define Order Interface
 interface Order {
   id: string;
   user_id: string;
@@ -33,7 +32,6 @@ const AdminOrdersScreen = () => {
   const [restaurantNames, setRestaurantNames] = useState<{ [key: string]: string }>({});
   const [menuItems, setMenuItems] = useState<{ [key: string]: { name: string; price: number }[] }>({});
 
-  // 🔹 Fetch Orders from Supabase
   const fetchOrders = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('orders').select('*');
@@ -60,7 +58,6 @@ const AdminOrdersScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 🔹 Fetch User Name by ID
   const fetchUserById = async (userId: string) => {
     if (userNames[userId]) {return;} // Skip if already fetched
 
@@ -77,7 +74,6 @@ const AdminOrdersScreen = () => {
     }
   };
 
-  // 🔹 Fetch Restaurant Name by ID
   const fetchRestaurantById = async (restaurantId: string) => {
     if (restaurantNames[restaurantId]) {return;} // Skip if already fetched
 
@@ -110,7 +106,7 @@ const AdminOrdersScreen = () => {
             console.error('Delete Order Error:', error);
           } else {
             Alert.alert('Success', 'Order deleted successfully!');
-            setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId)); // ✅ Remove from UI
+            setOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId));
           }
         },
       },
@@ -122,7 +118,6 @@ const AdminOrdersScreen = () => {
     if (menuItems[orderId]) {return;} // Skip if already fetched
 
     try {
-      // ✅ Ensure proper parsing of JSON
       const parsed = typeof menuItemIdsJson === 'string' ? JSON.parse(menuItemIdsJson) : menuItemIdsJson;
 
       if (!parsed || !parsed.menu_item_ids || !Array.isArray(parsed.menu_item_ids)) {
@@ -137,10 +132,9 @@ const AdminOrdersScreen = () => {
         return;
       }
 
-      // ✅ Fetch multiple menu items with name and price in one query
       const { data, error } = await supabase
         .from('menu_items')
-        .select('name, price') // ✅ Fetch both name and price
+        .select('name, price')
         .in('id', menuItemIds);
 
       if (error) {
@@ -160,7 +154,6 @@ const AdminOrdersScreen = () => {
   };
 
 
-  // 🔹 Update Order Status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     const { error } = await supabase
       .from('orders')
@@ -188,7 +181,6 @@ const AdminOrdersScreen = () => {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.orderCard}>
-            {/* 🔹 Delete Button in Upper Right Corner */}
             <TouchableOpacity onPress={() => deleteOrder(item.id)} style={styles.deleteButton}>
               <Text style={styles.deleteButtonText}>X</Text>
             </TouchableOpacity>
@@ -211,7 +203,6 @@ const AdminOrdersScreen = () => {
               <Text style={styles.menuItemText}>Loading...</Text>
             )}
 
-          {/* 🔹 Status Update Buttons */}
           <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.statusButton, item.status === 'pending' && styles.selectedStatus]}
@@ -255,7 +246,6 @@ const AdminOrdersScreen = () => {
 
 export default AdminOrdersScreen;
 
-// 🔹 Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

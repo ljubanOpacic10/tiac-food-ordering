@@ -25,7 +25,6 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({
 }) => {
   const [debt, setDebt] = useState(user?.currentDebt.toString());
 
-  // 🔹 Update Debt in Supabase
   const updateDebt = async () => {
     const debtValue = parseFloat(debt);
     if (isNaN(debtValue)) {
@@ -47,7 +46,6 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({
     }
   };
 
-  // 🔹 Delete User from Supabase
   const deleteUser = async () => {
     const { error } = await supabase.from('users').delete().eq('id', user.id);
 
@@ -98,7 +96,6 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({
 
 export default AdminUserModal;
 
-// 🔹 Styles
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,

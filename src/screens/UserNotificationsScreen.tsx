@@ -30,7 +30,6 @@ const UserNotificationsScreen = () => {
   const [user, setUser] = useState<any>(null);
   const [showRead, setShowRead] = useState(false);
 
-  // 🔹 Fetch Current User
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
@@ -58,7 +57,6 @@ const UserNotificationsScreen = () => {
     fetchUser();
   }, []);
 
-  // 🔹 Fetch Notifications for User
   useEffect(() => {
     if (user) {
       fetchNotifications();
@@ -69,7 +67,6 @@ const UserNotificationsScreen = () => {
   const fetchNotifications = async () => {
     if (!user) {return;}
     setLoading(true);
-    // 🔹 Fetch User Notifications
     const { data: userNotificationsData, error: userNotificationsError } = await supabase
       .from('user_notifications')
       .select('*')
@@ -85,9 +82,7 @@ const UserNotificationsScreen = () => {
       setLoading(false);
       return;
     }
-    // 🔹 Extract Notification IDs
     const notificationIds = userNotificationsData.map((notif) => notif.notification_id);
-    // 🔹 Fetch Notification Details from `notifications` Table
     const { data: notificationsData, error: notificationsError } = await supabase
       .from('notifications')
       .select('*')
@@ -97,7 +92,6 @@ const UserNotificationsScreen = () => {
       setLoading(false);
       return;
     }
-    // 🔹 Merge Data & Set State
     const mergedNotifications = userNotificationsData.map((userNotif) => {
       const notification = notificationsData.find((notif) => notif.id === userNotif.notification_id);
       return {
@@ -116,7 +110,6 @@ const UserNotificationsScreen = () => {
     setLoading(false);
   };
 
-  // 🔹 Mark as Read
   const markAsRead = async (userNotificationId: string) => {
     const { error } = await supabase
       .from('user_notifications')
@@ -130,7 +123,6 @@ const UserNotificationsScreen = () => {
     }
   };
 
-  // 🔹 Delete Notification
   const deleteNotification = async (userNotificationId: string) => {
     const { error } = await supabase
       .from('user_notifications')
@@ -148,7 +140,6 @@ const UserNotificationsScreen = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Notifications</Text>
 
-      {/* 🔹 Toggle Read/Unread Notifications */}
       <View style={styles.toggleContainer}>
         <TouchableOpacity
           style={[styles.toggleButton, !showRead && styles.selectedToggle]}
@@ -176,7 +167,6 @@ const UserNotificationsScreen = () => {
                 {new Date(item.created_at).toLocaleString()}
               </Text>
 
-              {/* 🔹 Action Buttons */}
               <View style={styles.actionContainer}>
                 {!item.read ? (
                   <TouchableOpacity

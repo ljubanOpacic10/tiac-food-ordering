@@ -4,9 +4,9 @@ import { supabase } from '../../supabaseConfig';
 
 interface OrderingSession {
   id: string;
-  start_time: string | null; // ISO 8601 timestamp from Supabase
-  end_time: string | null;   // Can be null if the session is still active
-  status: string; // Example: 'active' or 'ended'
+  start_time: string | null;
+  end_time: string | null;
+  status: string;
 }
 
 interface AdminStartEndOrderingSessionModalProps {
@@ -42,7 +42,6 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
   const startSession = async () => {
     setLoading(true);
 
-    // 🔹 Check if an active session already exists
     const { data: existingSessions, error: fetchError } = await supabase
       .from('ordering_sessions')
       .select('*')
@@ -60,7 +59,6 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
       return;
     }
 
-    // 🔹 Start a new ordering session if none is active
     const { data, error } = await supabase
       .from('ordering_sessions')
       .insert([{ start_time: new Date().toISOString(), status: 'active' }])
@@ -72,7 +70,6 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
       Alert.alert('Error', error.message);
     } else if (data && data.length > 0) {
       setActiveSession(data[0]);
-      Alert.alert('Success', 'Ordering session started!');
     } else {
       Alert.alert('Error', 'Failed to start session.');
     }
@@ -99,7 +96,17 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
       Alert.alert('Error', error.message);
     } else {
       setActiveSession(null);
-      Alert.alert('Success', 'Ordering session ended!');
+      const { error: userVoteResetError} = await supabase
+      .from('user_votes')
+      .delete();
+      const { error: voteResetError} = await supabase
+      .from('restaurants')
+      .update({ votes: 0 }).neq('votes', 0);
+      if (voteResetError) {
+        Alert.alert('Error', voteResetError?.message || userVoteResetError?.message || 'Something went wrong');
+      } else {
+        setActiveSession(null);
+      }
     }
   };
 
@@ -140,7 +147,7 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)', // Semi-transparent background
+        backgroundColor: 'rgba(0,0,0,0.5)',
       },
       modalContainer: {
         width: 320,
@@ -151,7 +158,7 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
         shadowColor: '#000',
         shadowOpacity: 0.2,
         shadowRadius: 5,
-        elevation: 5, // Adds depth
+        elevation: 5,
       },
       title: {
         fontSize: 20,
@@ -171,21 +178,21 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
         fontWeight: 'bold',
       },
       startButton: {
-        backgroundColor: '#2E7D32', // Green color for start
+        backgroundColor: '#2E7D32',
         paddingVertical: 12,
         paddingHorizontal: 25,
         borderRadius: 10,
         marginBottom: 10,
       },
       endButton: {
-        backgroundColor: '#B00020', // Red color for end
+        backgroundColor: '#B00020',
         paddingVertical: 12,
         paddingHorizontal: 25,
         borderRadius: 10,
         marginBottom: 10,
       },
       closeButton: {
-        backgroundColor: '#555', // Neutral color for close
+        backgroundColor: '#555',
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 10,

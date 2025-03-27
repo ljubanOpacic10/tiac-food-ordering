@@ -20,7 +20,6 @@ const AdminLoginScreen = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Handle Admin Login with Supabase Auth
   const handleAdminLogin = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -47,7 +46,6 @@ const AdminLoginScreen = () => {
 
     const userId = data.user.id;
 
-    // 🔹 Check if the user exists in the `users` table and is an admin
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('id, type')

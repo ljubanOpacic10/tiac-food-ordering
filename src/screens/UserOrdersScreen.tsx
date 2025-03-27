@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { supabase } from '../../supabaseConfig';
 
-// ✅ Define Interfaces
 interface User {
   id: string;
   firstName: string;
@@ -27,6 +26,7 @@ interface Order {
   total_price: number;
   description: string;
   status: string;
+  created_at: string;
 }
 
 const UserOrdersScreen = () => {
@@ -36,7 +36,6 @@ const UserOrdersScreen = () => {
   const [restaurantNames, setRestaurantNames] = useState<{ [key: string]: string }>({});
   const [menuItems, setMenuItems] = useState<{ [key: string]: { name: string; price: number }[] }>({});
 
-  // ✅ Fetch User Details from Supabase Auth
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
@@ -64,22 +63,21 @@ const UserOrdersScreen = () => {
     fetchUser();
   }, []);
 
-  // ✅ Fetch User Orders
   useEffect(() => {
     if (user) {
       fetchOrders();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // ✅ Runs only when user is loaded
+  }, [user]);
 
   const fetchOrders = async () => {
-    if (!user?.id) {return;} // ✅ Ensure user is loaded before fetching orders
+    if (!user?.id) {return;} 
     setLoading(true);
 
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('user_id', user.id); // ✅ Fetch only orders of the logged-in user
+      .eq('user_id', user.id);
 
     if (error) {
       Alert.alert('Error', 'Failed to fetch orders.');
@@ -87,7 +85,6 @@ const UserOrdersScreen = () => {
     } else {
       setOrders(data);
 
-      // Fetch Additional Data (Restaurants, Menu Items)
       data.forEach(async (order) => {
         fetchRestaurantById(order.restaurant_id);
         fetchMenuItemsById(order.menu_item_ids, order.id);
@@ -96,9 +93,8 @@ const UserOrdersScreen = () => {
     setLoading(false);
   };
 
-  // ✅ Fetch Restaurant Name
   const fetchRestaurantById = async (restaurantId: string) => {
-    if (restaurantNames[restaurantId]) return; // ✅ Skip if already fetched
+    if (restaurantNames[restaurantId]) {return;}
 
     const { data, error } = await supabase
       .from('restaurants')
@@ -113,9 +109,8 @@ const UserOrdersScreen = () => {
     }
   };
 
-  // ✅ Fetch Menu Items
   const fetchMenuItemsById = async (menuItemIdsJson: any, orderId: string) => {
-    if (menuItems[orderId]) return; // ✅ Skip if already fetched
+    if (menuItems[orderId]) {return;} 
 
     try {
       const parsed = typeof menuItemIdsJson === 'string' ? JSON.parse(menuItemIdsJson) : menuItemIdsJson;
@@ -132,7 +127,6 @@ const UserOrdersScreen = () => {
         return;
       }
 
-      // ✅ Fetch multiple menu items in one query
       const { data, error } = await supabase
         .from('menu_items')
         .select('name, price')
@@ -163,10 +157,10 @@ const UserOrdersScreen = () => {
               <Text style={styles.orderId}>Order ID: {item.id}</Text>
               <Text style={styles.text}>Restaurant: {restaurantNames[item.restaurant_id] || 'Loading...'}</Text>
               <Text style={styles.text}>Total: {item.total_price} RSD</Text>
+              <Text style={styles.text}>Created at: {item.created_at}</Text>
               <Text style={styles.text}>Status: {item.status}</Text>
               <Text style={styles.text}>Description: {item.description}</Text>
 
-              {/* 🔹 Menu Items List */}
               <Text style={styles.menuTitle}>Ordered Items:</Text>
               {menuItems[item.id] ? (
                 menuItems[item.id].map((menuItem, index) => (
@@ -187,7 +181,6 @@ const UserOrdersScreen = () => {
 
 export default UserOrdersScreen;
 
-// 🔹 Styles
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#F5F5F5' },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 15, color: '#B00020' },

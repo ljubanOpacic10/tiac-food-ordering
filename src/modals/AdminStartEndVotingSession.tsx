@@ -4,9 +4,9 @@ import { supabase } from '../../supabaseConfig';
 
 interface VotingSession {
     id: string;
-    start_time: string | null; // ISO 8601 timestamp from Supabase
-    end_time: string | null;   // Can be null if the session is still active
-    status: string; // Example: 'active' or 'ended'
+    start_time: string | null;
+    end_time: string | null;
+    status: string;
   }
 
   interface AdminStartEndVotingSessionModal {
@@ -42,7 +42,6 @@ const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal>
   const startSession = async () => {
     setLoading(true);
 
-    // 🔹 Check if an active session already exists
     const { data: existingSessions, error: fetchError } = await supabase
       .from('voting_sessions')
       .select('*')
@@ -68,7 +67,6 @@ const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal>
       Alert.alert('Error', error.message);
     } else if (data && data.length > 0) {
       setActiveSession(data[0]);
-      Alert.alert('Success', 'Voting session started!');
     } else {
       Alert.alert('Error', 'Failed to start session.');
     }
@@ -90,8 +88,7 @@ const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal>
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      setActiveSession(null); // Correct, since it's now VotingSession | null
-      Alert.alert('Success', 'Voting session ended!');
+      setActiveSession(null);
     }
   };
   return (
@@ -131,7 +128,7 @@ const styles = StyleSheet.create({
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'rgba(0,0,0,0.5)', // Semi-transparent background
+      backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContainer: {
       width: 320,
@@ -142,7 +139,7 @@ const styles = StyleSheet.create({
       shadowColor: '#000',
       shadowOpacity: 0.2,
       shadowRadius: 5,
-      elevation: 5, // Adds depth
+      elevation: 5,
     },
     title: {
       fontSize: 20,
@@ -162,14 +159,14 @@ const styles = StyleSheet.create({
       fontWeight: 'bold',
     },
     startButton: {
-      backgroundColor: '#2E7D32', // Green color for start
+      backgroundColor: '#2E7D32',
       paddingVertical: 12,
       paddingHorizontal: 25,
       borderRadius: 10,
       marginBottom: 10,
     },
     endButton: {
-      backgroundColor: '#B00020', // Red color for end
+      backgroundColor: '#B00020',
       paddingVertical: 12,
       paddingHorizontal: 25,
       borderRadius: 10,

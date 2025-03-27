@@ -13,7 +13,6 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../supabaseConfig';
 import { NavigationProps } from '../navigation/types';
 
-// ✅ User Interface
 interface User {
   id: string;
   firstName: string;
@@ -31,7 +30,6 @@ const UserProfileScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [qrModalVisible, setQrModalVisible] = useState(false);
 
-  // ✅ Fetch User Details from Supabase
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
@@ -59,7 +57,6 @@ const UserProfileScreen = () => {
     fetchUser();
   }, []);
 
-  // ✅ Handle Password Update
   const updatePassword = async () => {
     if (!newPassword || newPassword !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match.');
@@ -80,7 +77,6 @@ const UserProfileScreen = () => {
     }
   };
 
-  // ✅ Handle Logout
   const logout = async () => {
     setLoading(true);
     const { error } = await supabase.auth.signOut();
@@ -111,7 +107,6 @@ const UserProfileScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Scan Me</Text>
 
-            {/* ✅ Close Modal */}
             <TouchableOpacity style={styles.closeButton} onPress={() => setQrModalVisible(false)}>
               <Text style={styles.buttonText}>Close</Text>
             </TouchableOpacity>
@@ -124,7 +119,6 @@ const UserProfileScreen = () => {
         <ActivityIndicator size="large" color="#B00020" />
       ) : user ? (
         <>
-          {/* 🔹 User Details */}
           <Text style={styles.label}>First Name:</Text>
           <Text style={styles.text}>{user.firstName}</Text>
 
@@ -140,7 +134,6 @@ const UserProfileScreen = () => {
             {user.currentDebt} RSD
           </Text>
 
-          {/* 🔹 Pay Debt Button */}
           <TouchableOpacity style={styles.payDebtButton} onPress={handlePayDebt}>
             <Text style={styles.payDebtButtonText}>Pay</Text>
           </TouchableOpacity>
@@ -149,7 +142,6 @@ const UserProfileScreen = () => {
           <Text style={styles.label}>Account Type:</Text>
           <Text style={styles.text}>{user.type}</Text>
 
-          {/* 🔹 Password Update */}
           <Text style={styles.sectionTitle}>Change Password</Text>
           <TextInput
             style={styles.input}
@@ -175,7 +167,6 @@ const UserProfileScreen = () => {
             <Text style={styles.buttonText}>See Orders</Text>
           </TouchableOpacity>
 
-          {/* 🔹 Logout Button */}
           <TouchableOpacity style={styles.logoutButton} onPress={logout}>
             <Text style={styles.buttonText}>Log Out</Text>
           </TouchableOpacity>
@@ -189,7 +180,6 @@ const UserProfileScreen = () => {
 
 export default UserProfileScreen;
 
-// 🔹 Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -250,16 +240,16 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   debtContainer: {
-    flexDirection: 'row',  // ✅ Align debt and button in a row
-    alignItems: 'center',  // ✅ Center items vertically
-    marginBottom: 10,      // ✅ Adjust spacing
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   payDebtButton: {
-    backgroundColor: '#007BFF',  // ✅ Blue color
+    backgroundColor: '#007BFF',
     paddingVertical: 6,
     paddingHorizontal: 15,
-    borderRadius: 20,  // ✅ Makes it rounded
-    marginLeft: 10,  // ✅ Spacing from the debt value
+    borderRadius: 20,
+    marginLeft: 10,
   },
   payDebtButtonText: {
     color: '#FFF',

@@ -11,19 +11,17 @@ import {
 } from 'react-native';
 import { supabase } from '../../supabaseConfig';
 
-// 🔹 Define Props Interface
 interface AdminAddMenuItemTypeModalProps {
   visible: boolean;
   onClose: () => void;
   restaurant_id: string;
-  fetchMenuItemTypes: (restaurant_id: string) => void; // Refresh food types after adding
+  fetchMenuItemTypes: (restaurant_id: string) => void;
 }
 
 const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ visible, onClose, restaurant_id,fetchMenuItemTypes }) => {
   const [menuItemTypeName, setMenuItemTypeName] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  // 🔹 Add New Food Type to Supabase
   const addMenuItemType = async () => {
     if (!menuItemTypeName.trim()) {
       Alert.alert('Error', 'Please enter a menu item name.');
@@ -33,7 +31,6 @@ const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ v
     setUploading(true);
 
     try {
-      // ✅ Insert Data into Supabase Table
       const { error } = await supabase.from('menu_item_types').insert([
         { name: menuItemTypeName.trim()},
       ]);
@@ -42,8 +39,8 @@ const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ v
 
       Alert.alert('Success', 'Food type added successfully!');
       setMenuItemTypeName('');
-      fetchMenuItemTypes(restaurant_id); // Refresh food types list
-      onClose(); // Close modal
+      fetchMenuItemTypes(restaurant_id);
+      onClose();
     } catch (error) {
       console.error('Supabase Insert Error:', error);
       Alert.alert('Error', 'Failed to add food type.');
@@ -59,7 +56,6 @@ const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ v
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Add Menu Item Type</Text>
 
-          {/* 🔹 Input Field */}
           <TextInput
             style={styles.input}
             placeholder="Enter food type name"
@@ -68,7 +64,6 @@ const AdminAddMenuItemTypeModal: React.FC<AdminAddMenuItemTypeModalProps> = ({ v
           />
 
 
-          {/* 🔹 Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.addButton} onPress={addMenuItemType} disabled={uploading}>
               {uploading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Add</Text>}

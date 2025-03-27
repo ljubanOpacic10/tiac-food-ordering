@@ -14,7 +14,6 @@ import { supabase } from '../../supabaseConfig';
 import AdminAddFoodTypeModal from '../modals/AdminAddFoodTypeModal';
 import { ImageLibraryOptions, launchImageLibrary } from 'react-native-image-picker';
 
-// ✅ Define Interfaces
 interface Restaurant {
   id: string;
   name: string;
@@ -39,7 +38,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
   const [addFoodTypeModalVisible, setAddFoodTypeModalVisible] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
 
-  // 🔹 Fetch Restaurants from Supabase
   const fetchRestaurants = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('restaurants').select('*');
@@ -53,7 +51,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
     setLoading(false);
   };
 
-  // 🔹 Fetch Food Types from Supabase
   const fetchFoodTypes = async () => {
       setLoading(true);
       const { data, error } = await supabase.from('food_types').select('*');
@@ -86,7 +83,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
           text: 'Delete',
           onPress: async () => {
             try {
-              // 🔹 Delete restaurant from Supabase
               const { error } = await supabase
                 .from('restaurants')
                 .delete()
@@ -96,7 +92,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
                 throw error;
               }
 
-              // 🔹 Remove from Local State
               setRestaurants((prev) =>
                 prev.filter((restaurant) => restaurant.id !== restaurantId)
               );
@@ -130,7 +125,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
     });
   };
 
-  // 🔹 Add New Restaurant
   const addRestaurant = async () => {
     if (!restaurantName.trim()) {
       Alert.alert('Error', 'Please fill in the restaurant name field.');
@@ -140,7 +134,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
     setAdding(true);
     let imageUrl = null;
 
-    // ✅ Upload Image if Selected
     if (imageUri) {
       try {
         const fileName = `${Date.now()}-${restaurantName.replace(/\s/g, '-')}.jpg`;
@@ -160,7 +153,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
           throw new Error(uploadResult.error.message);
         }
 
-        // ✅ Get Public Image URL Safely
         const { data: publicUrlData } = supabase.storage
           .from('restaurants_images')
           .getPublicUrl(fileName);
@@ -174,7 +166,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
     }
 
     try {
-      // ✅ Insert New Restaurant into Supabase
       const { error } = await supabase.from('restaurants').insert([
         {
           name: restaurantName,
@@ -205,7 +196,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
     <View style={styles.container}>
       <Text style={styles.title}>Manage Restaurants</Text>
 
-      {/* 🔹 Input Fields for Adding a New Restaurant */}
       <TextInput
         style={styles.input}
         placeholder="Restaurant Name"
@@ -243,7 +233,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
                 </Text>
               </TouchableOpacity>
             ) : (
-              // ✅ "+" Button for Adding a New Food Type
               <TouchableOpacity style={styles.addFoodTypeButton} onPress={addFoodType}>
                 <Text style={styles.plusText}>+</Text>
               </TouchableOpacity>
@@ -259,14 +248,12 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
       {imageUri && (
       <View style={styles.imageContainer}>
         <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-        {/* 🔹 Remove Image Button (X) */}
         <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
           <Text style={styles.removeImageText}>✕</Text>
         </TouchableOpacity>
       </View>
       )}
 
-      {/* 🔹 Add Restaurant Button (Reduced Extra Space) */}
       <TouchableOpacity
         style={styles.addButton}
         onPress={addRestaurant}
@@ -278,7 +265,6 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
         )}
       </TouchableOpacity>
 
-      {/* 🔹 Loading Indicator */}
       {loading ? (
       <ActivityIndicator size="large" color="#B00020" />
       ) : (
@@ -293,13 +279,11 @@ const AdminRestaurantsScreen = ({ navigation }: any) => {
                   <Text style={styles.restaurantAddress}>{item.address}</Text>
                 </View>
 
-                {/* 🔹 Trashcan Icon for Deletion */}
                 <TouchableOpacity onPress={() => deleteRestaurant(item.id)}>
                   <Image source={require('../assets/trashcan.png')} style={styles.trashIcon} />
                 </TouchableOpacity>
               </View>
 
-              {/* 🔹 Manage Menu Button */}
               <TouchableOpacity
                 style={styles.menuButton}
                 onPress={() =>
@@ -455,7 +439,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   imageContainer: {
-    position: 'relative', // ✅ Allows positioning of "X" button
+    position: 'relative',
     alignSelf: 'center',
     marginBottom: 15,
   },
@@ -471,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#B00020',
     width: 22,
     height: 22,
-    borderRadius: 11, // ✅ Perfect circle
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },

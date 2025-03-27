@@ -27,7 +27,6 @@ const AdminUsersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🔹 Input Fields for New User
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,20 +34,19 @@ const AdminUsersScreen = () => {
   const [debt, setDebt] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // 🔹 Fetch Users
   const fetchUsers = async () => {
     setLoading(true);
 
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('type', 'user'); // 🔹 Fetch only users with type = 'user'
+      .eq('type', 'user');
 
     if (error) {
       console.error('Supabase Error:', error);
     } else {
       setUsers(data as User[]);
-      setFilteredUsers(data as User[]); // Initialize filtered list
+      setFilteredUsers(data as User[]);
     }
 
     setLoading(false);
@@ -59,7 +57,6 @@ const AdminUsersScreen = () => {
     fetchUsers();
   }, []);
 
-  // 🔹 Handle Search Filtering
   useEffect(() => {
     const filtered = users.filter(user =>
       `${user.firstName} ${user.lastName} ${user.email}`
@@ -69,7 +66,6 @@ const AdminUsersScreen = () => {
     setFilteredUsers(filtered);
   }, [searchQuery, users]);
 
-  // 🔹 Function to Add User
   const addUser = async () => {
     if (!firstName || !lastName || !email || !password || !debt) {
       Alert.alert('Error', 'Please fill in all fields.');
@@ -140,17 +136,14 @@ const AdminUsersScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 🔹 Input Fields for New User */}
       <TextInput style={styles.input} placeholder="First Name" value={firstName} onChangeText={setFirstName} />
       <TextInput style={styles.input} placeholder="Last Name" value={lastName} onChangeText={setLastName} />
       <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
       <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
       <TextInput style={styles.input} placeholder="Debt" value={debt} onChangeText={setDebt} keyboardType="numeric" />
 
-      {/* 🔹 Add User Button */}
       <TouchableOpacity onPress={addUser} style = {styles.addUserButton}><Text style = {styles.addButtonText}>Add User</Text></TouchableOpacity>
 
-      {/* 🔍 Search Bar Below Add User Button */}
       <TextInput
         style={styles.searchBar}
         placeholder="Search users..."

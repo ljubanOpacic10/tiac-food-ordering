@@ -33,7 +33,6 @@ const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
   const navigation = useNavigation<NavigationProps>();
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Logout Function using Supabase Auth
   const logout = async () => {
     setLoading(true);
 
@@ -44,7 +43,6 @@ const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
     if (error) {
       Alert.alert('Error', 'Failed to log out.');
     } else {
-      // ✅ Resets navigation stack & removes back button
       navigation.reset({
         index: 0,
         routes: [{ name: 'Welcome' }],

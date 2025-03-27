@@ -13,7 +13,6 @@ import {
 import {ImageLibraryOptions, launchImageLibrary} from 'react-native-image-picker';
 import { supabase } from '../../supabaseConfig';
 
-// ✅ Define Food Type Interface
 interface FoodType {
   id: string;
   food_type: string;
@@ -27,7 +26,6 @@ const AdminFoodTypesScreen = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // 🔹 Fetch Food Types from Supabase
   const fetchFoodTypes = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('food_types').select('*');
@@ -51,7 +49,6 @@ const AdminFoodTypesScreen = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            // ✅ Delete from Supabase
             const { error } = await supabase
               .from('food_types')
               .delete()
@@ -63,7 +60,6 @@ const AdminFoodTypesScreen = () => {
               return;
             }
 
-            // ✅ Refresh List after Deletion
             setFoodTypes((prevFoodTypes) => prevFoodTypes.filter((food) => food.id !== foodTypeId));
             Alert.alert('Success', 'Food type deleted!');
           },
@@ -77,11 +73,9 @@ const AdminFoodTypesScreen = () => {
     fetchFoodTypes();
   }, []);
 
-  // 🔹 Select an Image from the Gallery
-  // 🔹 Function to Pick Image from Gallery
   const pickImage = () => {
     const options: ImageLibraryOptions = {
-      mediaType: 'photo' as const, // ✅ Ensure correct mediaType type
+      mediaType: 'photo' as const,
       quality: 1,
     };
     launchImageLibrary(options, (response) => {
@@ -90,14 +84,13 @@ const AdminFoodTypesScreen = () => {
       } else if (response.errorMessage) {
         console.error('Image Picker Error:', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
-        const selectedUri = response.assets[0].uri ?? null; // ✅ Ensure a valid string or null
+        const selectedUri = response.assets[0].uri ?? null;
         setImageUri(selectedUri);
       }
     });
   };
 
 
-  // 🔹 Add New Food Type to Supabase
   const addFoodType = async () => {
     if (!foodTypeName) {
       Alert.alert('Error', 'Please enter a food type name.');
@@ -107,7 +100,6 @@ const AdminFoodTypesScreen = () => {
     setUploading(true);
     let imageUrl = null;
 
-    // ✅ Upload Image if Selected
     if (imageUri) {
         const fileName = `${Date.now()}-${foodTypeName.replace(/\s/g, '-')}.jpg`;
         const response = await fetch(imageUri);
@@ -126,7 +118,6 @@ const AdminFoodTypesScreen = () => {
         imageUrl = publicUrlData.publicUrl;
     }
 
-    // ✅ Insert Data into Supabase Table
     const { error } = await supabase.from('food_types').insert([
       { food_type: foodTypeName, image_url: imageUrl },
     ]);
@@ -145,7 +136,6 @@ const AdminFoodTypesScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 🔹 Input Fields for New Food Type */}
       <TextInput
         style={styles.input}
         placeholder="Enter food type name"
@@ -163,7 +153,6 @@ const AdminFoodTypesScreen = () => {
       <View style={styles.imageContainer}>
         <Image source={{ uri: imageUri }} style={styles.imagePreview} />
 
-        {/* 🔹 Remove Image Button (X) */}
         <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
           <Text style={styles.removeImageText}>✕</Text>
         </TouchableOpacity>
@@ -175,7 +164,6 @@ const AdminFoodTypesScreen = () => {
         {uploading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.addButtonText}>Add food type</Text>}
       </TouchableOpacity>
 
-      {/* 🔹 Loading Indicator */}
       {loading ? (
         <ActivityIndicator size="large" color="#B00020" />
       ) : (
@@ -185,7 +173,6 @@ const AdminFoodTypesScreen = () => {
           renderItem={({ item }) => (
             <View style={styles.foodTypeCard}>
               <Text style={styles.foodTypeText}>{item.food_type}</Text>
-              {/* 🔹 Trash Icon for Deleting */}
               <TouchableOpacity onPress={() => deleteFoodType(item.id)}>
                 <Image source={require('../assets/trashcan.png')} style={styles.trashIcon} />
               </TouchableOpacity>
@@ -239,8 +226,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   foodTypeCard: {
-    flexDirection: 'row', // ✅ Align text and icon in the same row
-    justifyContent: 'space-between', // ✅ Pushes text and icon apart
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#FFF',
     padding: 15,
@@ -248,10 +235,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#DDD',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   foodTypeText: {
     fontSize: 16,
@@ -261,10 +244,10 @@ const styles = StyleSheet.create({
   trashIcon: {
     width: 24,
     height: 24,
-    tintColor: '#B00020', // ✅ Same red theme color
+    tintColor: '#B00020',
   },
   imageContainer: {
-    position: 'relative', // ✅ Allows positioning of "X" button
+    position: 'relative',
     alignSelf: 'center',
     marginBottom: 15,
   },
@@ -280,7 +263,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#B00020',
     width: 22,
     height: 22,
-    borderRadius: 11, // ✅ Perfect circle
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },

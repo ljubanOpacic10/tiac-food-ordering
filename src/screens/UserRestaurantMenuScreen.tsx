@@ -11,7 +11,6 @@ import {
 import { useRoute } from '@react-navigation/native';
 import { supabase } from '../../supabaseConfig';
 
-// ✅ Define Types
 interface RouteParams {
   restaurantId: string;
   restaurantName: string;
@@ -43,7 +42,6 @@ const UserRestaurantMenuScreen = () => {
 
   const fetchMenuItemTypes = async (restaurantId: string) => {
     try {
-      // ✅ Step 1: Get menu item type IDs from menu_items that belong to this restaurant
       const { data: menuItems, error: menuItemsError } = await supabase
         .from('menu_items')
         .select('menu_item_type_id')
@@ -54,7 +52,6 @@ const UserRestaurantMenuScreen = () => {
         return;
       }
 
-      // ✅ Extract unique menu item type IDs
       const uniqueTypeIds = [...new Set(menuItems.map(item => item.menu_item_type_id))];
 
       if (uniqueTypeIds.length === 0) {
@@ -63,7 +60,6 @@ const UserRestaurantMenuScreen = () => {
         return;
       }
 
-      // ✅ Step 2: Fetch only menu item types that match these IDs
       const { data: types, error: typesError } = await supabase
         .from('menu_item_types')
         .select('*')
@@ -80,7 +76,6 @@ const UserRestaurantMenuScreen = () => {
   };
 
 
-  // 🔹 Fetch Menu Items for the Restaurant
   const fetchMenuItems = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -105,7 +100,6 @@ const UserRestaurantMenuScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
-  // 🔹 Filter Menu Items by Selected Type
   const filterMenuItems = (typeId: string) => {
     if (selectedType === typeId) {
       setSelectedType(null);
@@ -118,10 +112,8 @@ const UserRestaurantMenuScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 🔹 Restaurant Name */}
       <Text style={styles.restaurantTitle}>{restaurantName} Menu</Text>
       <View>
-        {/* 🔹 Menu Item Types (Categories) */}
       <Text style={styles.sectionTitle}>Categories</Text>
       <FlatList
         data={menuItemTypes}
@@ -147,7 +139,6 @@ const UserRestaurantMenuScreen = () => {
         )}
       />
 
-      {/* 🔹 Menu Items */}
       <Text style={styles.sectionTitle}>Menu</Text>
       {loading ? (
         <ActivityIndicator size="large" color="#B00020" />
@@ -185,17 +176,17 @@ const styles = StyleSheet.create({
       fontSize: 24,
       fontWeight: 'bold',
       textAlign: 'center',
-      marginBottom: 10, // Reduced margin for better spacing
+      marginBottom: 10,
       color: '#B00020',
     },
     sectionTitle: {
       fontSize: 18,
       fontWeight: 'bold',
-      marginBottom: 5, // ✅ Reduced margin to decrease spacing
+      marginBottom: 5,
       color: '#333',
     },
     foodTypeList: {
-      paddingBottom: 5, // ✅ Reduced padding to bring "Menu" section closer
+      paddingBottom: 5,
     },
     foodTypeCard: {
       height: 40,
@@ -220,7 +211,7 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       backgroundColor: '#FFF',
       padding: 10,
-      marginVertical: 5, // ✅ Reduced vertical margin for tighter layout
+      marginVertical: 5,
       borderRadius: 10,
       borderWidth: 1,
       borderColor: '#DDD',
@@ -246,7 +237,7 @@ const styles = StyleSheet.create({
     menuItemDescription: {
       fontSize: 14,
       color: '#666',
-      marginVertical: 2, // ✅ Reduced margin for better spacing
+      marginVertical: 2,
     },
     menuItemPrice: {
       fontSize: 14,

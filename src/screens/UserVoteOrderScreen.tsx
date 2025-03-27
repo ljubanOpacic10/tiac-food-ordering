@@ -4,9 +4,7 @@ import { supabase } from '../../supabaseConfig';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker'; // For dropdowns
 import { NavigationProps } from '../navigation/types';
-import MultiSelect from 'react-native-multiple-select';
-
-// ✅ Define Interfaces
+import MultiSelectDropdown from '../components/MultiSelectDropdown';
 interface Restaurant {
   id: string;
   name: string;
@@ -37,19 +35,32 @@ interface MenuItem {
   menu_item_type_id: string;
 }
 
+interface Order {
+  id: string;
+  user_id: string;
+  restaurant_id: string;
+  menu_item_ids: { menu_item_ids: string[] };
+  total_price: number;
+  description: string;
+  status: string;
+  created_at: string;
+}
+
 const UserVoteOrderScreen = () => {
   const [user, setUser] = useState<{id:string, firstName: string; lastName: string } | null>(null);
   const navigation = useNavigation<NavigationProps>();
   const [activeVotingSession, setActiveVotingSession] = useState<VotingSession | null>(null);
   const [activeOrderingSession, setActiveOrderingSession] = useState<OrderingSession | null>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant>();
-  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>();
+  const [todaysOrder, setTodaysOrder] = useState<Order | null>();
+  const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editable, setEditable] = useState(false); // Prevent editing until "Edit Votes" is clicked
+  const [editable, setEditable] = useState(false);
+  const [orderSubmited, setOrderSubmited] = useState(false);
   const [orderDescription, setOrderDescription] = useState<string>('');
-  // 🔹 State for Selected Votes
+  const [totalPrice, setTotalPrice] = useState<number>();
   const [firstPick, setFirstPick] = useState<string | null>(null);
   const [secondPick, setSecondPick] = useState<string | null>(null);
   const [thirdPick, setThirdPick] = useState<string | null>(null);
@@ -64,7 +75,6 @@ const UserVoteOrderScreen = () => {
     fetchVotingSessions();
     fetchOrderingSessions();
     fetchRestaurants();
-    // ✅ Subscribe to real-time changes
     const votingSubscription = supabase
       .channel('realtime-voting')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'voting_sessions' }, () => fetchVotingSessions())
@@ -90,9 +100,84 @@ const UserVoteOrderScreen = () => {
   useEffect(() => {
     if (user) {
       fetchUserVotes();
+      fetchTodaysOrder();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  const fetchTodaysOrder = async () => {
+    if (!user) {return;}
+
+    setLoading(true);
+
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error fetching today’s order:', error);
+      setTodaysOrder(null);
+    } else {
+      const todayOrder = data.find((order) => order.created_at.split('T')[0] === today);
+      fetchRestaurantById(todayOrder.restaurant_id);
+      fetchMenuItemsById(todayOrder.menu_item_ids);
+      setOrderDescription(todayOrder.description);
+      setTodaysOrder(todayOrder);
+    }
+
+    setLoading(false);
+  };
+
+  const fetchMenuItemsById = async (menuItemIdsJson: any) => {
+    try {
+      const parsed = typeof menuItemIdsJson === 'string' ? JSON.parse(menuItemIdsJson) : menuItemIdsJson;
+
+      if (!parsed || !parsed.menu_item_ids || !Array.isArray(parsed.menu_item_ids)) {
+        console.warn('Invalid JSON structure:', menuItemIdsJson);
+        return;
+      }
+
+      const menuItemIds = parsed.menu_item_ids;
+
+      if (menuItemIds.length === 0) {
+        console.warn('No valid menu item IDs found:', menuItemIdsJson);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .in('id', menuItemIds);
+
+      if (error) {
+        console.error('Failed to fetch menu items:', error);
+      } else if (data) {
+        setSelectedMenuItems(data);
+      }
+    } catch (error) {
+      console.error('Error processing menu item IDs:', error);
+    }
+  };
+
+  const fetchRestaurantById = async (restaurantId: string) => {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', restaurantId)
+      .single();
+
+    if (error) {
+      console.error('Failed to fetch restaurant:', error);
+    } else {
+      setSelectedRestaurant(data);
+      setOrderSubmited(true);
+    }
+  };
+
 
   const fetchUser = async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -119,9 +204,10 @@ const UserVoteOrderScreen = () => {
         .eq('restaurant_id', restaurant?.id);
 
       if (error) {
-        //implement
+        Alert.alert('Error:', error.message);
       } else {
         setMenuItems(data);
+        setSelectedMenuItems([]);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -152,7 +238,6 @@ const UserVoteOrderScreen = () => {
   };
 
 
-    // 🔹 Fetch User Votes & Set Initial Picks
   const fetchUserVotes = async () => {
     if (!user) {return;}
 
@@ -166,7 +251,6 @@ const UserVoteOrderScreen = () => {
       setEditable(false);
       setEditable(false);
 
-      // ✅ Set previous picks from Supabase
       const first = data.find((vote) => vote.pick === 'first');
       const second = data.find((vote) => vote.pick === 'second');
       const third = data.find((vote) => vote.pick === 'third');
@@ -195,10 +279,8 @@ const UserVoteOrderScreen = () => {
     setLoading(false);
   };
 
-  // 🔹 Handle Vote Submission
   const submitVotes = async () => {
     if (!editable) {
-      // ✅ Toggle Edit Mode
       setEditable(true);
       return;
     }
@@ -277,53 +359,129 @@ const UserVoteOrderScreen = () => {
   };
 
   const submitOrder = async () => {
-    //implement
+    if(orderSubmited){
+      setOrderSubmited(false);
+      return;
+    }
+    if(todaysOrder){
+      await editOrder();
+      return;
+    }
+    if (!user || !selectedRestaurant || selectedMenuItems.length === 0) {
+      Alert.alert('Error', 'Please select a restaurant and at least one menu item.');
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase.from('orders').insert([
+     {
+      user_id: user.id,
+      restaurant_id: selectedRestaurant.id,
+      total_price: totalPrice,
+      description: orderDescription,
+      status: 'pending',
+      menu_item_ids: JSON.stringify({ menu_item_ids: selectedMenuItems.map((item) => item.id) }), // Convert to JSON format
+      created_at: new Date().toISOString(),
+    },
+    ]);
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Error', 'Failed to submit order.');
+      console.error( error);
+    } else {
+      Alert.alert('Success', 'Your order has been placed successfully!');
+      setOrderSubmited(true);
+    }
   };
+
+  const editOrder = async () => {
+    if (!user || !selectedRestaurant || selectedMenuItems.length === 0) {
+      Alert.alert('Error', 'Please select a restaurant and at least one menu item.');
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase
+    .from('orders')
+    .update({
+      user_id: user.id,
+      restaurant_id: selectedRestaurant.id,
+      total_price: totalPrice,
+      description: orderDescription,
+      status: 'pending',
+      menu_item_ids: JSON.stringify({
+        menu_item_ids: selectedMenuItems.map((item) => item.id),
+      }),
+      created_at: new Date().toISOString(),
+    })
+    .eq('id', todaysOrder?.id);
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Error', 'Failed to submit order.');
+      console.error( error);
+    } else {
+      Alert.alert('Success', 'Your order has been placed successfully!');
+      setOrderSubmited(true);
+    }
+  };
+
+
+  function onChange(selectedValues: MenuItem[]): void {
+    setSelectedMenuItems(selectedValues);
+    setTotalPrice(0);
+    let sum = 0;
+    selectedMenuItems.forEach((item) => {
+      sum += item.price;
+    });
+    selectedValues.forEach((item) => {
+      sum += item.price;
+    });
+    setTotalPrice(sum);
+  }
 
   return (
     <View style={styles.container}>
       {activeVotingSession ? (
         <>
-          {/* 🔹 Header */}
           <Text style={styles.title}>Voting Session</Text>
           <Text style={styles.subtitle}>Ends in 30 min at 11:00</Text>
 
-          {/* 🔹 First Pick */}
           <Text style={styles.label}>First Pick</Text>
           <Picker
             selectedValue={firstPick}
             onValueChange={(value) => changeFirstPick(value)}
             enabled={editable}
             style={[styles.picker, !editable && styles.disabledPicker]}>
-            {/* ✅ Show 'Pick a restaurant' only if firstPick is null */}
             {!firstPick && <Picker.Item label="Pick a restaurant" value={null} enabled={false} />}
             {restaurants.map((restaurant) => (
               <Picker.Item key={restaurant.id} label={restaurant.name} value={restaurant.id} />
             ))}
           </Picker>
 
-          {/* 🔹 Second Pick */}
           <Text style={styles.label}>Second Pick</Text>
           <Picker
             selectedValue={secondPick}
             onValueChange={(value) => changeSecondPick(value)}
             enabled={editable}
             style={[styles.picker, !editable && styles.disabledPicker]}>
-            {/* ✅ Show 'Pick a restaurant' only if secondPick is null */}
             {!secondPick && <Picker.Item label="Pick a restaurant" value={null} enabled={false} />}
             {restaurants.map((restaurant) => (
               <Picker.Item key={restaurant.id} label={restaurant.name} value={restaurant.id} />
             ))}
           </Picker>
 
-          {/* 🔹 Third Pick */}
           <Text style={styles.label}>Third Pick</Text>
           <Picker
             selectedValue={thirdPick}
             onValueChange={(value) => changeThirdPick(value)}
             enabled={editable}
             style={[styles.picker, !editable && styles.disabledPicker]}>
-            {/* ✅ Show 'Pick a restaurant' only if thirdPick is null */}
             {!thirdPick && <Picker.Item label="Pick a restaurant" value={null} enabled={false} />}
             {restaurants.map((restaurant) => (
               <Picker.Item key={restaurant.id} label={restaurant.name} value={restaurant.id} />
@@ -331,12 +489,10 @@ const UserVoteOrderScreen = () => {
           </Picker>
 
 
-          {/* 🔹 Submit/Edit Votes Button */}
           <TouchableOpacity style={styles.button} onPress={submitVotes}>
             <Text style={styles.buttonText}>{editable ? 'Submit Votes' : 'Edit Votes'}</Text>
           </TouchableOpacity>
 
-          {/* 🔹 Display Results */}
           <Text style={styles.sectionTitle}>Colleagues Picked</Text>
           <FlatList
             data={restaurants.filter((r) => r.votes > 0)}
@@ -358,11 +514,9 @@ const UserVoteOrderScreen = () => {
         </>
       ) : activeOrderingSession ? (
         <>
-          {/* 🔹 Ordering Session */}
           <Text style={styles.title}>Voting Session Ended</Text>
           <Text style={styles.subtitle}>Write your order</Text>
 
-          {/* 🔹 Display Results */}
           <Text style={styles.sectionTitle}>Colleagues Picked</Text>
           <FlatList
             data={restaurants.filter((r) => r.votes > 0).slice(0,3)}
@@ -389,9 +543,9 @@ const UserVoteOrderScreen = () => {
             )}
           />
 
-          {/* 🔹 Select Restaurant */}
           <Text style={styles.label}>Pick a Restaurant</Text>
           <Picker
+            enabled={!orderSubmited}
             selectedValue={selectedRestaurant}
             onValueChange={(value) => {
               setSelectedRestaurant(value);
@@ -399,44 +553,40 @@ const UserVoteOrderScreen = () => {
             }}
             style={styles.picker}
           >
-            <Picker.Item label="Select a restaurant" value={null} />
+            <Picker.Item label = {
+              selectedRestaurant
+              ? `Selected: ${selectedRestaurant.name}`
+              : 'Select a restaurant'
+            } value={null} />
             {restaurants.filter((r) => r.votes > 0).slice(0,3).map((restaurant) => (
               <Picker.Item key={restaurant.id} label={restaurant.name} value={restaurant} />
             ))}
           </Picker>
 
-          {/* 🔹 Select Menu Item */}
-          <MultiSelect
-          items={menuItems.map(item => ({ id: item.id, name: `${item.name} - ${item.price} RSD` }))}
-          uniqueKey="id"
-          onSelectedItemsChange={setSelectedMenuItems}
-          selectedItems={selectedMenuItems}
-          selectText="Pick Menu Items"
-          searchInputPlaceholderText="Search Items..."
-          tagRemoveIconColor="#B00020"
-          tagBorderColor="#B00020"
-          tagTextColor="#B00020"
-          selectedItemTextColor="#B00020"
-          selectedItemIconColor="#B00020"
-          itemTextColor="#000"
-          displayKey="name"
-          searchInputStyle={{ color: '#000' }}
-          submitButtonColor="#B00020"
-          submitButtonText="Confirm Selection"
-        />
+          {selectedRestaurant && (
+          <MultiSelectDropdown<MenuItem>
+            label={`Choose what you want to eat from ${selectedRestaurant.name}`}
+            options={menuItems}
+            value={selectedMenuItems}
+            onChange={onChange}
+            labelKey="name"
+            valueKey="id"
+            labelDescription="price"
+            enabled={!orderSubmited}
+          />
+        )}
 
-          {/* 🔹 Order Description */}
           <Text style={styles.label}>Write Your Order</Text>
           <TextInput
             style={styles.textInput}
+            editable = {!orderSubmited}
             placeholder="Any additional instructions?"
             value={orderDescription}
             onChangeText={setOrderDescription}
           />
 
-          {/* 🔹 Submit Order Button */}
           <TouchableOpacity style={styles.button} onPress={() => submitOrder()}>
-            <Text style={styles.buttonText}>Submit Order</Text>
+            <Text style={styles.buttonText}>{orderSubmited ? 'Edit order' : 'Submit order'}</Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -448,7 +598,6 @@ const UserVoteOrderScreen = () => {
 
 export default UserVoteOrderScreen;
 
-// 🔹 Styles
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#F5F5F5' },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 10, color: '#B00020' },
@@ -465,5 +614,10 @@ const styles = StyleSheet.create({
   restaurantName: { fontSize: 16, fontWeight: 'bold' },
   voteCount: { fontSize: 14, color: '#666' },
   textInput: { backgroundColor: '#FFF', padding: 10, borderRadius: 8, marginTop: 10 },
-  disabledPicker: { backgroundColor: '#DDD' }, // ✅ Disable selection when read-only
+  disabledPicker: { backgroundColor: '#DDD' },
+  searchIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
 });

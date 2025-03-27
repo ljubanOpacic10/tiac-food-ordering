@@ -45,7 +45,6 @@ const UserLoginScreen = () => {
 
         const userId = data.user.id;
 
-        // 🔹 Check if the user exists in the `users` table and is an admin
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('id, type')

@@ -39,7 +39,6 @@ const UserDashboardScreen = ()  => {
   const [selectedFoodType, setSelectedFoodType] = useState<string | null>(null);
   const [isSidebarVisible, setSidebarVisible] = useState<boolean>(false);
 
-  // 🔹 Fetch Food Types from Supabase
   const fetchFoodTypes = async () => {
     const { data, error } = await supabase.from('food_types').select('*');
     if (error) {
@@ -49,7 +48,6 @@ const UserDashboardScreen = ()  => {
     }
   };
 
-  // 🔹 Fetch Restaurants from Supabase
   const fetchRestaurants = async () => {
     const { data, error } = await supabase.from('restaurants').select('*');
     if (error) {
@@ -61,7 +59,6 @@ const UserDashboardScreen = ()  => {
     setLoading(false);
   };
 
-  // 🔹 Filter Menu Items by Selected Type
   const filterRestaurants = (foodTypeId: string) => {
     if (selectedFoodType === foodTypeId) {
       setSelectedFoodType(null);
@@ -113,7 +110,6 @@ const UserDashboardScreen = ()  => {
   return (
     <View style={styles.container}>
 
-      {/* 🔹 Sidebar (Left) */}
       <Modal visible={isSidebarVisible} animationType="slide" transparent={true}>
         <View style={styles.sidebarContainer}>
           <View style={styles.sidebarContent}>
@@ -167,7 +163,6 @@ const UserDashboardScreen = ()  => {
           </View>
         </View>
       </Modal>
-      {/* 🔹 Search Bar */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setSidebarVisible(true)}>
           <Image
@@ -195,7 +190,6 @@ const UserDashboardScreen = ()  => {
         </TouchableOpacity>
       </View>
     <View>
-    {/* 🔹 Food Types (Categories) */}
     <Text style={styles.sectionTitle}>Categories</Text>
     <FlatList
       data={foodTypes}
@@ -221,7 +215,6 @@ const UserDashboardScreen = ()  => {
       }}
     />
 
-      {/* 🔹 Restaurants List */}
       <Text style={styles.sectionTitle}>Restaurants</Text>
       {loading ? (
         <ActivityIndicator size="large" color="#B00020" style={styles.loader} />

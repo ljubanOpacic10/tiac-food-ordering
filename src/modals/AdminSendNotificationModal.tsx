@@ -23,7 +23,6 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Function to send notification
   const sendNotification = async () => {
     if (!message.trim()) {
       Alert.alert('Error', 'Please enter a message.');
@@ -40,9 +39,8 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
       return;
     }
 
-    const adminId = user.user.id; // Get the authenticated user ID
+    const adminId = user.user.id;
 
-    // 🔹 Insert new notification into Supabase
     const { error } = await supabase.from('notifications').insert([
       {
         created_at: new Date().toISOString(),
@@ -59,7 +57,7 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
     } else {
       Alert.alert('Success', 'Notification sent successfully!');
       setMessage('');
-      onClose(); // Close modal after sending
+      onClose();
     }
   };
 
@@ -69,7 +67,6 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
         <View style={styles.modalContainer}>
           <Text style={styles.title}>Send Notification</Text>
 
-          {/* 🔹 Input Field for Message */}
           <TextInput
             style={styles.input}
             placeholder="Enter your message..."
@@ -78,7 +75,6 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
             onChangeText={setMessage}
           />
 
-          {/* 🔹 Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.sendButton} onPress={sendNotification} disabled={loading}>
               {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Send</Text>}
@@ -96,7 +92,6 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
 
 export default AdminSendNotificationModal;
 
-// 🔹 Styles
 const styles = StyleSheet.create({
   modalBackground: {
     flex: 1,

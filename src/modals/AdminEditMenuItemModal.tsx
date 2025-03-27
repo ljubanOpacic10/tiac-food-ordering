@@ -13,7 +13,6 @@ import {
 import { supabase } from '../../supabaseConfig';
 import { ImageLibraryOptions, launchImageLibrary } from 'react-native-image-picker';
 
-// ✅ Define Props for Modal
 interface AdminEditMenuItemModalProps {
   visible: boolean;
   onClose: () => void;
@@ -44,10 +43,9 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
   const [imageUri, setImageUri] = useState<string | null>(menuItem.image_url || null);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Pick Image
   const pickImage = () => {
       const options: ImageLibraryOptions = {
-        mediaType: 'photo' as const, // ✅ Ensure correct mediaType type
+        mediaType: 'photo' as const,
         quality: 1,
       };
       launchImageLibrary(options, (response) => {
@@ -56,17 +54,15 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
         } else if (response.errorMessage) {
           console.error('Image Picker Error:', response.errorMessage);
         } else if (response.assets && response.assets.length > 0) {
-          const selectedUri = response.assets[0].uri ?? null; // ✅ Ensure a valid string or null
+          const selectedUri = response.assets[0].uri ?? null;
           setImageUri(selectedUri);
         }
       });
     };
-  // 🔹 Update Menu Item in Supabase
   const updateMenuItem = async () => {
     setLoading(true);
     let imageUrl = imageUri;
 
-    // ✅ Upload Image if Changed
     if (imageUri && imageUri !== menuItem.image_url) {
       try {
         const fileName = `${Date.now()}-${name.replace(/\s/g, '-')}.jpg`;
@@ -81,7 +77,6 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
           throw new Error(uploadError.message);
         }
 
-        // ✅ Get Public Image URL
         const { data: publicUrlData } = supabase.storage
           .from('menu_images')
           .getPublicUrl(fileName);
@@ -91,18 +86,17 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
         setLoading(false);
         Alert.alert('Error', 'Failed to upload image.');
         console.error(error);
-        return; // Stop execution if image upload fails
+        return; 
       }
     }
 
     try {
-      // ✅ Update Supabase Record
       const { error: updateError } = await supabase
         .from('menu_items')
         .update({
           name,
           description,
-          price: parseFloat(price), // Ensure price is stored as a number
+          price: parseFloat(price),
           menu_item_type_id: menuItemType,
           image_url: imageUrl,
         })
@@ -113,8 +107,8 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
       }
 
       Alert.alert('Success', 'Menu item updated successfully!');
-      refreshMenu(); // Refresh menu items list
-      onClose(); // Close modal
+      refreshMenu();
+      onClose();
     } catch (error) {
       Alert.alert('Error');
       console.error(error);
@@ -124,7 +118,6 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
   };
 
 
-  // 🔹 Delete Menu Item
   const deleteMenuItem = async () => {
     Alert.alert('Confirm Delete', 'Are you sure you want to delete this menu item?', [
       { text: 'Cancel', style: 'cancel' },
@@ -158,7 +151,6 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
           <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} />
           <TextInput style={styles.input} placeholder="Price" value={price} onChangeText={setPrice} keyboardType="numeric" />
 
-          {/* 🔹 Dropdown for Menu Item Type */}
           <Text style={styles.label}>Select Type:</Text>
           {menuItemTypes.map((type) => (
             <TouchableOpacity
@@ -171,7 +163,6 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
             </TouchableOpacity>
           ))}
 
-          {/* 🔹 Image Picker */}
           <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
             <Text style={styles.imagePickerText}>{imageUri ? 'Change Image' : 'Pick an Image'}</Text>
           </TouchableOpacity>
@@ -179,14 +170,12 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
           {imageUri && (
                         <View style={styles.imageContainer}>
                           <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                          {/* 🔹 Remove Image Button (X) */}
                           <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
                             <Text style={styles.removeImageText}>✕</Text>
                           </TouchableOpacity>
                         </View>
                         )}
 
-          {/* 🔹 Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.updateButton} onPress={updateMenuItem} disabled={loading}>
               {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Save Changes</Text>}
@@ -197,7 +186,6 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* 🔹 Close Button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.buttonText}>Close</Text>
           </TouchableOpacity>
@@ -209,7 +197,6 @@ const AdminEditMenuItemModal: React.FC<AdminEditMenuItemModalProps> = ({
 
 export default AdminEditMenuItemModal;
 
-// 🔹 Styles
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
@@ -267,7 +254,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   imageContainer: {
-    position: 'relative', // ✅ Allows positioning of "X" button
+    position: 'relative',
     alignSelf: 'center',
     marginBottom: 15,
   },
@@ -283,7 +270,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#B00020',
     width: 22,
     height: 22,
-    borderRadius: 11, // ✅ Perfect circle
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },

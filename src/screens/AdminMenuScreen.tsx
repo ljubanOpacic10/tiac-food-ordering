@@ -16,7 +16,6 @@ import { useRoute } from '@react-navigation/native';
 import AdminEditMenuItemModal from '../modals/AdminEditMenuItemModal';
 import AdminAddMenuItemTypeModal from '../modals/AdminAddMenuItemTypeModal';
 
-// ✅ Define Menu Item Interface
 interface MenuItem {
   id: string;
   name: string;
@@ -26,7 +25,6 @@ interface MenuItem {
   menu_item_type: string;
 }
 
-// ✅ Define Menu Item Type Interface
 interface MenuItemType {
   id: string;
   name: string;
@@ -48,7 +46,6 @@ const AdminMenuScreen = () => {
   const [selectedMenuItemType, setSelectedMenuItemType] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
 
-  // 🔹 Fetch Menu Items
   const fetchMenuItems = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -65,10 +62,8 @@ const AdminMenuScreen = () => {
     setLoading(false);
   };
 
-  // 🔹 Fetch Menu Item Types
   const fetchMenuItemTypes = async (restaurant_id: string) => {
       try {
-        // ✅ Step 1: Get menu item type IDs from menu_items that belong to this restaurant
         const { data: menuItems, error: menuItemsError } = await supabase
           .from('menu_items')
           .select('menu_item_type_id')
@@ -79,7 +74,6 @@ const AdminMenuScreen = () => {
           return;
         }
 
-        // ✅ Extract unique menu item type IDs
         const uniqueTypeIds = [...new Set(menuItems.map(item => item.menu_item_type_id))];
 
         if (uniqueTypeIds.length === 0) {
@@ -88,7 +82,6 @@ const AdminMenuScreen = () => {
           return;
         }
 
-        // ✅ Step 2: Fetch only menu item types that match these IDs
         const { data: types, error: typesError } = await supabase
           .from('menu_item_types')
           .select('*')
@@ -110,10 +103,9 @@ const AdminMenuScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant_id]);
 
-  // 🔹 Select an Image from the Gallery
   const pickImage = () => {
       const options: ImageLibraryOptions = {
-        mediaType: 'photo' as const, // ✅ Ensure correct mediaType type
+        mediaType: 'photo' as const,
         quality: 1,
       };
       launchImageLibrary(options, (response) => {
@@ -122,13 +114,12 @@ const AdminMenuScreen = () => {
         } else if (response.errorMessage) {
           console.error('Image Picker Error:', response.errorMessage);
         } else if (response.assets && response.assets.length > 0) {
-          const selectedUri = response.assets[0].uri ?? null; // ✅ Ensure a valid string or null
+          const selectedUri = response.assets[0].uri ?? null;
           setImageUri(selectedUri);
         }
       });
     };
 
-  // 🔹 Add New Menu Item to Supabase
   const addMenuItem = async () => {
     if (!menuItemName.trim() || !menuItemDescription.trim() || !menuItemPrice.trim() || !selectedMenuItemType) {
       Alert.alert('Error', 'Please fill in all fields.');
@@ -138,7 +129,6 @@ const AdminMenuScreen = () => {
     setAdding(true);
     let imageUrl = null;
 
-    // ✅ Upload Image if Selected
     if (imageUri) {
       try {
         const fileName = `${Date.now()}-${menuItemName.replace(/\s/g, '-')}.jpg`;
@@ -151,7 +141,6 @@ const AdminMenuScreen = () => {
 
         if (error) {throw error;}
 
-        // ✅ Get Public Image URL
         const { data: publicUrlData } = supabase.storage
           .from('menu_item_images')
           .getPublicUrl(fileName);
@@ -166,7 +155,6 @@ const AdminMenuScreen = () => {
     }
 
     try {
-      // ✅ Insert Data into Supabase Table
       const { error } = await supabase.from('menu_items').insert([
         {
           name: menuItemName.trim(),
@@ -204,7 +192,6 @@ const AdminMenuScreen = () => {
     <View style={styles.container}>
       <Text style={styles.title}>{restaurantName} Menu</Text>
 
-      {/* 🔹 Input Fields for Adding a New Menu Item */}
       <TextInput style={styles.input} placeholder="Menu Item Name" value={menuItemName} onChangeText={setMenuItemName} />
       <TextInput style={styles.input} placeholder="Description" value={menuItemDescription} onChangeText={setMenuItemDescription} />
       <TextInput style={styles.input} placeholder="Price" value={menuItemPrice} onChangeText={setMenuItemPrice} keyboardType="numeric" />
@@ -212,7 +199,7 @@ const AdminMenuScreen = () => {
       <Text style={styles.label}>Select Menu Item Type:</Text>
       <View style={styles.sectionContainer}>
         <FlatList
-          data={[...menuItemTypes, { id: 'add_button', name: 'add' }]} // ✅ Add a fake item for "+"
+          data={[...menuItemTypes, { id: 'add_button', name: 'add' }]}
           horizontal
           keyExtractor={(item) => item.id}
           renderItem={({ item }) =>
@@ -232,7 +219,6 @@ const AdminMenuScreen = () => {
                 </Text>
               </TouchableOpacity>
             ) : (
-              // ✅ "+" Button for Adding a New Menu Item Type
               <TouchableOpacity style={styles.addFoodTypeButton} onPress={addMenuItemType}>
                 <Text style={styles.plusText}>+</Text>
               </TouchableOpacity>
@@ -242,7 +228,6 @@ const AdminMenuScreen = () => {
       </View>
 
 
-      {/* 🔹 Image Picker */}
       <View style={styles.sectionContainer}>
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
           <Text style={styles.imagePickerText}>{imageUri ? 'Change image' : 'Pick an Image'}</Text>
@@ -252,14 +237,12 @@ const AdminMenuScreen = () => {
       {imageUri && (
       <View style={styles.imageContainer}>
         <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-        {/* 🔹 Remove Image Button (X) */}
         <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
           <Text style={styles.removeImageText}>✕</Text>
         </TouchableOpacity>
       </View>
       )}
 
-      {/* 🔹 Add Menu Item Button */}
       <TouchableOpacity style={styles.addButton} onPress={addMenuItem} disabled={adding}>
         {adding ? <ActivityIndicator color="#FFF" /> : <Text style={styles.addButtonText}>Add Menu Item</Text>}
       </TouchableOpacity>
@@ -288,7 +271,7 @@ const AdminMenuScreen = () => {
           visible={!!selectedMenuItem}
           onClose={() => {
             setSelectedMenuItem(null);
-            fetchMenuItems(); // ✅ Refresh Menu Items After Edit/Delete
+            fetchMenuItems();
           }}
           menuItem={selectedMenuItem}
           menuItemTypes={menuItemTypes}
@@ -338,7 +321,7 @@ const styles = StyleSheet.create({
       color: '#333',
     },
     sectionContainer: {
-      marginBottom: 15, // ✅ Adds consistent spacing between sections
+      marginBottom: 15,
     },
     imagePicker: {
       backgroundColor: '#B00020',
@@ -391,7 +374,7 @@ const styles = StyleSheet.create({
       color: '#B00020',
     },
     imageContainer: {
-      position: 'relative', // ✅ Allows positioning of "X" button
+      position: 'relative',
       alignSelf: 'center',
       marginBottom: 15,
     },
@@ -407,7 +390,7 @@ const styles = StyleSheet.create({
       backgroundColor: '#B00020',
       width: 22,
       height: 22,
-      borderRadius: 11, // ✅ Perfect circle
+      borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
     },
