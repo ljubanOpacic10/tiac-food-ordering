@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   FlatList,
+  Alert,
 } from 'react-native';
 import AdminProfileModal from '../modals/AdminProfileModal';
 import {useNavigation} from '@react-navigation/native';
@@ -32,6 +33,18 @@ interface Restaurant {
   food_type_id: string;
   image_url: string;
 }
+interface OrderingSession {
+  id: string;
+  start_time: string | null;
+  end_time: string | null;
+  status: string;
+}
+interface VotingSession {
+  id: string;
+  start_time: string | null;
+  end_time: string | null;
+  status: string;
+}
 
 const AdminDashboard = () => {
   const navigation = useNavigation<NavigationProps>();
@@ -48,8 +61,8 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>();
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-
-
+  const [activeOrderingSession, setActiveOrderingSession] = useState<OrderingSession | null>(null);
+  const [activeVotingSession, setActiveVotingSession] = useState<VotingSession | null>(null);
   const adminOptions = [
     {
       title: 'Users',
@@ -77,6 +90,45 @@ const AdminDashboard = () => {
     fetchUsers();
     fetchRestaurants();
   }, []);
+
+  useEffect(() => {
+    fetchVotingSessions();
+    fetchOrderingSessions();
+    const votingSubscription = supabase
+      .channel('realtime-voting')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'voting_sessions' }, () => fetchVotingSessions())
+      .subscribe();
+
+    const orderingSubscription = supabase
+      .channel('realtime-ordering')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ordering_sessions' }, () => fetchOrderingSessions())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(votingSubscription);
+      supabase.removeChannel(orderingSubscription);
+    };
+  }, []);
+
+ const fetchVotingSessions = async () => {
+    const { data: votingSessions } = await supabase
+      .from('voting_sessions')
+      .select('*')
+      .eq('status', 'active')
+      .single();
+
+      setActiveVotingSession(votingSessions);
+  };
+
+  const fetchOrderingSessions = async () => {
+    const { data: orderingSessions } = await supabase
+      .from('ordering_sessions')
+      .select('*')
+      .eq('status', 'active')
+      .single();
+
+    setActiveOrderingSession(orderingSessions);
+  };
 
   const fetchUsers = async () => {
     const { data, error } = await supabase
@@ -120,6 +172,15 @@ const AdminDashboard = () => {
   }, [searchQuery, users, restaurants]);
 
   function handleClickOnCard(title: string) {
+    if (title === 'Start/End voting session' && activeOrderingSession) {
+      Alert.alert('Cannot Start Voting Session', 'An ordering session is already active. Please end it first.');
+      return;
+    }
+
+    if (title === 'Start/End ordering session' && activeVotingSession) {
+      Alert.alert('Cannot Start Ordering Session', 'A voting session is already active. Please end it first.');
+      return;
+    }
     switch (title) {
       case 'Users':
         navigation.navigate('AdminUsersScreen');
@@ -234,23 +295,25 @@ const AdminDashboard = () => {
         )}
         </View>
 
-      <FlatList
-        data={adminOptions}
-        numColumns={2}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({item}) => (
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => handleClickOnCard(item.title)}
-          activeOpacity={0.7}
-          >
-          <Image source={item.image} style={styles.cardImage} />
-          <Text style={styles.cardText}>{item.title}</Text>
-        </TouchableOpacity>
-
-        )}
-        contentContainerStyle={styles.gridContainer}
-      />
+        <FlatList
+          data={adminOptions}
+          numColumns={2}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => {
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.card,
+                ]}
+                onPress={() => handleClickOnCard(item.title)}
+              >
+                <Image source={item.image} style={styles.cardImage} />
+                <Text style={styles.cardText}>{item.title}</Text>
+              </TouchableOpacity>
+            );
+          }}
+          contentContainerStyle={styles.gridContainer}
+        />
 
       <AdminProfileModal
         visible={modalVisible}
