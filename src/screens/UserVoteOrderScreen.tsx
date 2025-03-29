@@ -82,7 +82,7 @@ const UserVoteOrderScreen = () => {
 
     const orderingSubscription = supabase
       .channel('realtime-ordering')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ordering_sessions' }, () => fetchVotingSessions())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ordering_sessions' }, () => fetchOrderingSessions())
       .subscribe();
 
     const restaurantSubscription = supabase

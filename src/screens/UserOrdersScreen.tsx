@@ -71,7 +71,7 @@ const UserOrdersScreen = () => {
   }, [user]);
 
   const fetchOrders = async () => {
-    if (!user?.id) {return;} 
+    if (!user?.id) {return;}
     setLoading(true);
 
     const { data, error } = await supabase
@@ -110,7 +110,7 @@ const UserOrdersScreen = () => {
   };
 
   const fetchMenuItemsById = async (menuItemIdsJson: any, orderId: string) => {
-    if (menuItems[orderId]) {return;} 
+    if (menuItems[orderId]) {return;}
 
     try {
       const parsed = typeof menuItemIdsJson === 'string' ? JSON.parse(menuItemIdsJson) : menuItemIdsJson;
