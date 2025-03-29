@@ -16,12 +16,22 @@ interface AdminSendNotificationModalProps {
   onClose: () => void;
 }
 
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  currentDebt: number;
+  type: string;
+}
+
 const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
   visible,
   onClose,
 }) => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   const sendNotification = async () => {
     if (!message.trim()) {
@@ -31,34 +41,83 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
 
     setLoading(true);
 
-    const { data: user, error: userError } = await supabase.auth.getUser();
+    const { data: admin, error: userError } = await supabase.auth.getUser();
 
-    if (userError || !user || !user.user) {
+    if (userError || !admin) {
       Alert.alert('Error', 'Failed to fetch admin user ID.');
       setLoading(false);
       return;
     }
 
-    const adminId = user.user.id;
+    const adminId = admin.user.id;
 
-    const { error } = await supabase.from('notifications').insert([
-      {
-        created_at: new Date().toISOString(),
-        message,
-        type: 'notification',
-        sender_user_id: adminId,
-      },
-    ]);
+    const { data: notificationData, error: notificationError } = await supabase
+      .from('notifications')
+      .insert([
+        {
+          created_at: new Date().toISOString(),
+          message,
+          type: 'notification',
+          sender_user_id: adminId,
+          status: 'sending', // optional
+        },
+      ])
+      .select()
+      .single();
+
+    if (notificationError || !notificationData) {
+      setLoading(false);
+      Alert.alert('Error', 'Failed to send notification.');
+      console.error('Notification insert error:', notificationError);
+      return;
+    }
+
+    const notificationId = notificationData.id;
+
+    await fetchUsers();
+    await sendNotificaionToEveryUser(notificationId);
 
     setLoading(false);
+  };
+
+
+  const fetchUsers = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('type', 'user');
 
     if (error) {
-      Alert.alert('Error', error.message);
+      console.error('Supabase Error:', error);
     } else {
-      Alert.alert('Success', 'Notification sent successfully!');
-      setMessage('');
-      onClose();
+      setUsers(data as User[]);
     }
+
+    setLoading(false);
+  };
+
+  const sendNotificaionToEveryUser = async (notificationId: any) => {
+    users.forEach(async (user)=>{
+      const { error: linkError } = await supabase
+      .from('user_notifications')
+      .insert([
+        {
+          user_id: user.id,
+          notification_id: notificationId,
+          read: false,
+        },
+      ]);
+      if (linkError) {
+        Alert.alert('Error', 'Notification created but failed to link to users.');
+        console.error('Linking error:', linkError);
+      } else {
+        Alert.alert('Success', 'Notification sent to all users!');
+        setMessage('');
+        onClose();
+      }
+    });
   };
 
   return (
