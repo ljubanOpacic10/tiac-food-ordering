@@ -3,16 +3,26 @@ import { Modal, View, Text, ActivityIndicator, Alert, StyleSheet, TouchableOpaci
 import { supabase } from '../../supabaseConfig';
 
 interface VotingSession {
-    id: string;
-    start_time: string | null;
-    end_time: string | null;
-    status: string;
-  }
+  id: string;
+  start_time: string | null;
+  end_time: string | null;
+  status: string;
+}
 
-  interface AdminStartEndVotingSessionModal {
-    visible: boolean;
-    onClose: () => void;
-  }
+interface AdminStartEndVotingSessionModal {
+  visible: boolean;
+  onClose: () => void;
+}
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  currentDebt: number;
+  type: string;
+}
+
 
 const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal> = ({
     visible,
@@ -20,10 +30,90 @@ const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal>
   }) => {
   const [loading, setLoading] = useState(false);
   const [activeSession, setActiveSession] = useState<VotingSession | null>(null);
-
+  const [users, setUsers] = useState<User[]>([]);
   useEffect(() => {
     fetchActiveSession();
+    fetchUsers();
   }, []);
+
+  const sendNotification = async (message: string) => {
+    setLoading(true);
+
+    const { data: admin, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !admin) {
+      Alert.alert('Error', 'Failed to fetch admin user ID.');
+      setLoading(false);
+      return;
+    }
+
+    const adminId = admin.user.id;
+
+    const { data: notificationData, error: notificationError } = await supabase
+      .from('notifications')
+      .insert([
+        {
+          created_at: new Date().toISOString(),
+          message,
+          type: 'notification',
+          sender_user_id: adminId,
+          status: 'sending', // optional
+        },
+      ])
+      .select()
+      .single();
+
+    if (notificationError || !notificationData) {
+      setLoading(false);
+      Alert.alert('Error', 'Failed to send notification.');
+      console.error('Notification insert error:', notificationError);
+      return;
+    }
+
+    const notificationId = notificationData.id;
+
+    await sendNotificaionToEveryUser(notificationId);
+
+    setLoading(false);
+  };
+
+
+  const fetchUsers = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('type', 'user');
+
+    if (error) {
+      console.error('Supabase Error:', error);
+    } else {
+      setUsers(data as User[]);
+    }
+
+    setLoading(false);
+  };
+
+  const sendNotificaionToEveryUser = async (notificationId: any) => {
+    await fetchUsers();
+    users.forEach(async (user)=>{
+      const { error: linkError } = await supabase
+      .from('user_notifications')
+      .insert([
+        {
+          user_id: user.id,
+          notification_id: notificationId,
+          read: false,
+        },
+      ]);
+      if (linkError) {
+        Alert.alert('Error', 'Notification created but failed to link to users.');
+        console.error('Linking error:', linkError);
+      }
+    });
+  };
+
 
   const fetchActiveSession = async () => {
     const { data, error } = await supabase
@@ -67,6 +157,7 @@ const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal>
       Alert.alert('Error', error.message);
     } else if (data && data.length > 0) {
       setActiveSession(data[0]);
+      sendNotification('Voting session started');
     } else {
       Alert.alert('Error', 'Failed to start session.');
     }
@@ -89,6 +180,7 @@ const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal>
       Alert.alert('Error', error.message);
     } else {
       setActiveSession(null);
+      sendNotification('Voting session ended');
     }
   };
   return (

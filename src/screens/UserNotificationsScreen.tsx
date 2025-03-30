@@ -58,11 +58,34 @@ const UserNotificationsScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
+    if (!user) {return;}
+
+    fetchNotifications(); // Initial fetch
+
+    // Subscribe to new inserts on `user_notifications` for the current user
+    const subscription = supabase
+      .channel('user-notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_notifications',
+          filter: `user_id=eq.${user.id}`, // Only listen to this user's notifications
+        },
+        async (payload) => {
+          console.log('🔔 New user notification:', payload.new);
+          await fetchNotifications(); // Refetch or optimistically update state
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
 
   const fetchNotifications = async () => {
     if (!user) {return;}

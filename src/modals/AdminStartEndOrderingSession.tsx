@@ -9,6 +9,15 @@ interface OrderingSession {
   status: string;
 }
 
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  currentDebt: number;
+  type: string;
+}
+
 interface AdminStartEndOrderingSessionModalProps {
   visible: boolean;
   onClose: () => void;
@@ -20,9 +29,10 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
 }) => {
   const [loading, setLoading] = useState(false);
   const [activeSession, setActiveSession] = useState<OrderingSession | null>(null);
-
+  const [users, setUsers] = useState<User[]>([]);
   useEffect(() => {
     fetchActiveSession();
+    fetchUsers();
   }, []);
 
   const fetchActiveSession = async () => {
@@ -37,6 +47,84 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
     } else {
       setActiveSession(data);
     }
+  };
+
+  const sendNotification = async (message: string) => {
+    setLoading(true);
+
+    const { data: admin, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !admin) {
+      Alert.alert('Error', 'Failed to fetch admin user ID.');
+      setLoading(false);
+      return;
+    }
+
+    const adminId = admin.user.id;
+
+    const { data: notificationData, error: notificationError } = await supabase
+      .from('notifications')
+      .insert([
+        {
+          created_at: new Date().toISOString(),
+          message,
+          type: 'notification',
+          sender_user_id: adminId,
+          status: 'sending', // optional
+        },
+      ])
+      .select()
+      .single();
+
+    if (notificationError || !notificationData) {
+      setLoading(false);
+      Alert.alert('Error', 'Failed to send notification.');
+      console.error('Notification insert error:', notificationError);
+      return;
+    }
+
+    const notificationId = notificationData.id;
+
+    await sendNotificaionToEveryUser(notificationId);
+
+    setLoading(false);
+  };
+
+
+  const fetchUsers = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('type', 'user');
+
+    if (error) {
+      console.error('Supabase Error:', error);
+    } else {
+      setUsers(data as User[]);
+    }
+
+    setLoading(false);
+  };
+
+  const sendNotificaionToEveryUser = async (notificationId: any) => {
+    await fetchUsers();
+    users.forEach(async (user)=>{
+      const { error: linkError } = await supabase
+      .from('user_notifications')
+      .insert([
+        {
+          user_id: user.id,
+          notification_id: notificationId,
+          read: false,
+        },
+      ]);
+      if (linkError) {
+        Alert.alert('Error', 'Notification created but failed to link to users.');
+        console.error('Linking error:', linkError);
+      }
+    });
   };
 
   const startSession = async () => {
@@ -70,6 +158,7 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
       Alert.alert('Error', error.message);
     } else if (data && data.length > 0) {
       setActiveSession(data[0]);
+      await sendNotification('Ordering session started');
     } else {
       Alert.alert('Error', 'Failed to start session.');
     }
@@ -106,6 +195,7 @@ const AdminStartEndOrderingSessionModal: React.FC<AdminStartEndOrderingSessionMo
         Alert.alert('Error', voteResetError?.message || userVoteResetError?.message || 'Something went wrong');
       } else {
         setActiveSession(null);
+        await sendNotification('Ordering session ended');
       }
     }
   };

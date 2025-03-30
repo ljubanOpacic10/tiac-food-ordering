@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,9 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
   const sendNotification = async () => {
     if (!message.trim()) {
       Alert.alert('Error', 'Please enter a message.');
@@ -74,7 +77,6 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
 
     const notificationId = notificationData.id;
 
-    await fetchUsers();
     await sendNotificaionToEveryUser(notificationId);
 
     setLoading(false);
@@ -99,6 +101,7 @@ const AdminSendNotificationModal: React.FC<AdminSendNotificationModalProps> = ({
   };
 
   const sendNotificaionToEveryUser = async (notificationId: any) => {
+    await fetchUsers();
     users.forEach(async (user)=>{
       const { error: linkError } = await supabase
       .from('user_notifications')
