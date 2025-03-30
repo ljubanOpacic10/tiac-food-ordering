@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,17 @@ import {
   ActivityIndicator,
   StyleSheet,
   Modal,
+  SafeAreaView,
+  Platform,
+  PermissionsAndroid,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../supabaseConfig';
 import { NavigationProps } from '../navigation/types';
+import QRCode from 'react-native-qrcode-svg';
+import RNFetchBlob from 'rn-fetch-blob';
+import Share from 'react-native-share';
 
 interface User {
   id: string;
@@ -29,6 +36,8 @@ const UserProfileScreen = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [QRvalue, setQRValue] = useState('');
+  const [QRImage] = useState('');
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -85,34 +94,77 @@ const UserProfileScreen = () => {
     if (error) {
       Alert.alert('Error', 'Failed to log out.');
     } else {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Welcome' }],
-      });
+      navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
     }
   };
 
-  const seeOrders = ()=>{
-    navigation.navigate('UserOrdersScreen');
+  const handleSave = async () => {
+    if (Platform.OS === 'android') {
+      const isReadGranted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+      );
+      if (isReadGranted !== PermissionsAndroid.RESULTS.GRANTED) {return;}
+    }
+    const dirs = RNFetchBlob.fs.dirs;
+    const qrcode_data = QRImage.split('data:image/png;base64,');
+    const filePath = `${dirs.DownloadDir}/QRCode_${Date.now()}.png`;
+    RNFetchBlob.fs.writeFile(filePath, qrcode_data[1], 'base64')
+      .then(() => console.log('Saved successfully'))
+      .catch(err => console.log(err));
   };
 
-  function handlePayDebt(): void {
-    setQrModalVisible(true);
-  }
+  const handleShare = async () => {
+    const options = {
+      title: 'Share your QR code',
+      url: QRImage,
+    };
+    try {
+      await Share.open(options);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const seeOrders = () => navigation.navigate('UserOrdersScreen');
+  const handlePayDebt = () => setQrModalVisible(true);
 
   return (
-    <View style={styles.container}>
-      <Modal animationType="slide" transparent={true} visible={qrModalVisible} onRequestClose={() => setQrModalVisible(false)}>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Modal animationType="slide" transparent visible={qrModalVisible}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Scan Me</Text>
-
+            <SafeAreaView>
+              <Text style={styles.sectionTitleQrMdal}>Generate QR Code</Text>
+              <TextInput
+                placeholder="Enter value of payment"
+                style={styles.textInput}
+                autoCapitalize="none"
+                value={QRvalue}
+                onChangeText={setQRValue}
+              />
+              <QRCode
+                size={300}
+                value={QRvalue || 'NA'}
+                logoSize={60}
+                logoBackgroundColor="transparent"
+              />
+            </SafeAreaView>
+            <View style={styles.row}>
+                <TouchableOpacity style={styles.Button} onPress={handleShare}>
+                  <Text style={styles.buttonText}>Share</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.Button} onPress={handleSave}>
+                  <Text style={styles.buttonText}>Save</Text>
+                </TouchableOpacity>
+            </View>
             <TouchableOpacity style={styles.closeButton} onPress={() => setQrModalVisible(false)}>
               <Text style={styles.buttonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
       <Text style={styles.title}>User Profile</Text>
 
       {loading ? (
@@ -130,14 +182,13 @@ const UserProfileScreen = () => {
 
           <Text style={styles.label}>Current Debt:</Text>
           <View style={styles.debtContainer}>
-          <Text style={[styles.text, user.currentDebt > 0 && styles.debtText]}>
-            {user.currentDebt} RSD
-          </Text>
-
-          <TouchableOpacity style={styles.payDebtButton} onPress={handlePayDebt}>
-            <Text style={styles.payDebtButtonText}>Pay</Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={[styles.text, user.currentDebt > 0 && styles.debtText]}>
+              {user.currentDebt} RSD
+            </Text>
+            <TouchableOpacity style={styles.payDebtButton} onPress={handlePayDebt}>
+              <Text style={styles.payDebtButtonText}>Pay</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.label}>Account Type:</Text>
           <Text style={styles.text}>{user.type}</Text>
@@ -174,7 +225,7 @@ const UserProfileScreen = () => {
       ) : (
         <Text style={styles.text}>User data not available.</Text>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
@@ -182,27 +233,27 @@ export default UserProfileScreen;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 20,
-    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    flexGrow: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#B00020',
-    marginBottom: 15,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 10,
-    color: '#333',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#555',
+    marginTop: 12,
   },
   text: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
+    fontSize: 15,
+    color: '#333',
+    marginTop: 2,
   },
   debtText: {
     color: '#B00020',
@@ -212,44 +263,51 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 20,
+    marginTop: 25,
+    marginBottom: 10,
   },
   input: {
-    width: '100%',
-    backgroundColor: '#FFF',
+    backgroundColor: '#F0F0F0',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: '#CCC',
+    fontSize: 14,
     marginBottom: 10,
   },
   button: {
     backgroundColor: '#007BFF',
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 15,
-    width: '100%',
+    marginTop: 10,
   },
   logoutButton: {
     backgroundColor: '#B00020',
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    width: '100%',
+    marginTop: 20,
   },
-  buttonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   debtContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    marginVertical: 10,
+    backgroundColor: '#F9F9F9',
+    padding: 10,
+    borderRadius: 8,
   },
   payDebtButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#28A745',
     paddingVertical: 6,
-    paddingHorizontal: 15,
+    paddingHorizontal: 14,
     borderRadius: 20,
-    marginLeft: 10,
   },
   payDebtButtonText: {
     color: '#FFF',
@@ -265,20 +323,50 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#FFF',
     padding: 20,
-    borderRadius: 10,
+    borderRadius: 15,
+    width: '90%',
     alignItems: 'center',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#B00020',
+  },
+  sectionTitleQrMdal: {
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 15,
+  },
+  textInput: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  Button: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
   },
   closeButton: {
     backgroundColor: '#B00020',
     padding: 10,
     borderRadius: 8,
-    marginTop: 10,
-    width: '80%',
+    marginTop: 20,
+    width: '100%',
     alignItems: 'center',
   },
 });
