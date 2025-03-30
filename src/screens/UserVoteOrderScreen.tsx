@@ -590,7 +590,7 @@ const UserVoteOrderScreen = () => {
           </TouchableOpacity>
         </>
       ) : (
-        <Text style={styles.title}>No active voting session</Text>
+        <Text style={styles.title}>No active session</Text>
       )}
     </View>
   );

@@ -77,8 +77,8 @@ const UserOrdersScreen = () => {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('user_id', user.id);
-
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
     if (error) {
       Alert.alert('Error', 'Failed to fetch orders.');
       console.error('Supabase Error:', error);

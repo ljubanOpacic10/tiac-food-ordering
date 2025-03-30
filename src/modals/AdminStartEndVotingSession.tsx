@@ -199,7 +199,7 @@ const AdminStartEndVotingSessionModal: React.FC<AdminStartEndVotingSessionModal>
             </>
           ) : (
             <>
-              <Text style={styles.statusText}>No active voting session.</Text>
+              <Text style={styles.statusText}>No active session.</Text>
               <TouchableOpacity style={styles.startButton} onPress={startSession}>
                 <Text style={styles.buttonText}>Start Voting Session</Text>
               </TouchableOpacity>

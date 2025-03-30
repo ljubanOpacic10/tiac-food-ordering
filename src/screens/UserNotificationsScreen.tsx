@@ -107,9 +107,10 @@ const UserNotificationsScreen = () => {
     }
     const notificationIds = userNotificationsData.map((notif) => notif.notification_id);
     const { data: notificationsData, error: notificationsError } = await supabase
-      .from('notifications')
-      .select('*')
-      .in('id', notificationIds);
+    .from('notifications')
+    .select('*')
+    .in('id', notificationIds)
+    .order('created_at', { ascending: false });
     if (notificationsError) {
       console.error('Failed to fetch notification details:', notificationsError);
       setLoading(false);
